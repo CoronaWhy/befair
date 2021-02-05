@@ -1,0 +1,13 @@
+version: '3'
+services:
+    namespaces:
+      networks:
+        - traefik
+      image: coronawhy/semantic-gateway
+      ports:
+        - "8002:80"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.namespaces.rule=Host(`namespaces.${traefikhost}`)"
+        - "traefik.http.routers.namespaces.tls=true"
+        - "traefik.http.routers.namespaces.tls.certresolver=myresolver"

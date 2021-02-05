@@ -1,0 +1,22 @@
+version: '3'
+services:
+    solr:
+      networks:
+        - traefik
+      image: ekoindarto/solr-cvm:latest
+      privileged: true
+      ports:
+        - "8983:8983"
+      environment:
+        - "SOLR_HOST=solr"
+        - "SOLR_PORT=8983"
+        - "SOLR_JAVA_MEM=-Xms1g -Xmx1g"
+      volumes:
+        - ./var/solr/data:/opt/solr/server/solr/collection1/data
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.solr.rule=Host(`solr.${traefikhost}`)"
+        - "traefik.http.services.solr.loadbalancer.server.port=8983"
+        - "traefik.http.routers.solr.tls=true"
+        - "traefik.http.routers.solr.tls.certresolver=myresolver"  
+

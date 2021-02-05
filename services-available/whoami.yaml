@@ -1,0 +1,13 @@
+version: '3'
+services:
+    whoami:
+      networks:
+        - traefik
+      image: containous/whoami
+      labels:
+        - "traefik.enable=true"
+          # - "traefik.http.routers.whoami.entrypoints=web"
+        - "traefik.http.routers.whoami.rule=Host(`whoami.${traefikhost}`)"
+        - "traefik.http.routers.whoami.tls=true"
+        - "traefik.http.routers.whoami.tls.certresolver=myresolver"  
+

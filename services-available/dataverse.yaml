@@ -1,0 +1,60 @@
+version: '3'
+services:
+    dataverse:
+      networks:
+        - traefik
+      #image: ekoindarto/dataverse-cvm:5.0
+      image: coronawhy/dataverse:5.2.2-cv
+      # privileged: true
+      ports:
+        #- "443:443"
+        - "4848:4848"
+        - "8085:8080"
+      environment:
+        - "DATAVERSE_URL=https://dataverse.s3.coronawhy.org"
+        - "CVM_SERVER_NAME=CESSDA" #Optional
+        - "CVM_SERVER_URL=https://ns.${traefikhost}"
+        - "CVM_TSV_SOURCE=https://raw.githubusercontent.com/Dans-labs/semantic-gateway/main/conf/CMM_Custom_MetadataBlock.tsv"
+        - "WAR_FILE=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/dataverse-5.2-cv.war"
+
+        - "4848:4848"
+        - "8085:8080"
+        - "CVM_SQL=https://github.com/IQSS/dataverse-docker/releases/download/5.1.1-cv/cv-update.sql"
+        - "CVM_CONFIG=https://github.com/IQSS/dataverse-docker/releases/download/5.1.1-cv/cv-keywords.json"
+        - "LANG=en"
+        - "cvManager=http://"
+        - "BUNDLEPROPERTIES=Bundle.properties"
+        - "ADMIN_EMAIL=admin@localhost"
+        - "MAIL_SERVER=mailrelay"
+        
+        ########################################
+        # Next section MUST BE overwritten by --env-file when docker-compose is launched
+        - "POSTGRES_SERVER"
+        - "POSTGRES_PORT"
+        - "POSTGRES_DATABASE"
+        - "POSTGRES_USER"
+        - "PGPASSWORD"
+        ########################################
+        
+        - "SOLR_LOCATION=solr:8983"
+        - "TWORAVENS_LOCATION=NOT INSTALLED"
+        - "RSERVE_HOST=localhost"
+        - "RSERVE_PORT=6311"
+        - "RSERVE_USER=rserve"
+        - "RSERVE_PASSWORD=rserve"
+        - "JVM_OPTS='-Xmx1g -Xms1g -XX:MaxPermSize=2g -XX:PermSize=2g'"
+      depends_on:
+        - solr
+#        - ns
+      volumes:
+        - ./var/dataverse/data:/usr/local/payara5/glassfish/domains/domain1/autodeploy
+        - ./var/dataverse/dumps:/dumps
+        - ./var/dataverse/docroot:/docroot
+        - ./var/dataverse/metadata:/metadata
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.dataverse.rule=Host(`www.${traefikhost}`)"
+        - "traefik.http.services.dataverse.loadbalancer.server.port=8080"
+        - "traefik.http.routers.dataverse.tls=true"
+        - "traefik.http.routers.dataverse.tls.certresolver=myresolver"  
+

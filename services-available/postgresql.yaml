@@ -1,0 +1,18 @@
+version: '3'
+services:
+    postgres:
+      networks:
+        - traefik
+      ports:
+        - "5433:5432"
+      image: library/postgres:10.13
+      restart: unless-stopped
+
+      environment:
+        - "LC_ALL"
+        - "POSTGRES_DB"
+        - "POSTGRES_USER"
+        - "POSTGRES_PASSWORD"
+        - "POSTGRES_PORT"
+      volumes:
+        - ./var/database/data:/var/lib/postgresql/data/ # persist data even if container shuts down
