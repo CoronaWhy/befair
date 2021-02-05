@@ -1,0 +1,4 @@
+version: '3'
+services:
+    dataverse:
+      image: ekoindarto/dataverse-cvm:5.1
