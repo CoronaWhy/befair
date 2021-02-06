@@ -6,7 +6,7 @@ All selected services should be available on a selected subdomain name and could
 
 The infrastructure was designed as out-of-the-box solution that research community can install with one command just as normal Operating System. The roadmap includes releases containing Open Data available for the different sciences, however COVID-19 Data Hub is our current priority.
 
-# Available services
+# Available and planned services
 
 Available basic infrastructure components:
 * traefik
@@ -20,7 +20,7 @@ The list of services integrated in BeFAIR:
 * [Apache Superset](https://github.com/apache/superset) (in progress) 
 * [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
 
-To Do (please join the project if you want to contribute!):
+To Do (we re accepting Pull Requests, please join the project if you want to contribute!):
 * CoronaWhy API http://api.apps.coronawhy.org (FastAPI with Swagger)
 * Elasticsearch http://es.apps.coronawhy.org
 * SPARQL http://sparql.apps.coronawhy.org (Virtuoso as a service)
