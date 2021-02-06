@@ -14,14 +14,15 @@ Available basic infrastructure components:
 * SOLR
 
 The list of services integrated in BeFAIR:
-* Dataverse](http://github.com/IQSS/dataverse) 
+* [Dataverse](http://github.com/IQSS/dataverse) 
 * [Semantic Gateway](https://github.com/Dans-labs/semantic-gateway)
 * [Apache Airflow](https://github.com/apache/airflow)
 * [Apache Superset](https://github.com/apache/superset) (in progress) 
 * [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
 
 BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your deployment (see deploys folder) to start enabled services.  
-For example, if you will put the following subdomain in .env file
+
+For example, if you will put the following subdomain (labs.coronawhy.org) in .env file
 ```
 traefikhost=labs.coronawhy.org
 ```
