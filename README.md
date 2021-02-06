@@ -20,6 +20,18 @@ The list of services integrated in BeFAIR:
 * [Apache Superset](https://github.com/apache/superset) (in progress) 
 * [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
 
+To Do (please join the project if you want to contribute!):
+* CoronaWhy API http://api.apps.coronawhy.org (FastAPI with Swagger)
+* Elasticsearch http://es.apps.coronawhy.org
+* SPARQL http://sparql.apps.coronawhy.org (Virtuoso as a service)
+* INDRA http://indra.apps.coronawhy.org (INDRA REST API https://indra.readthedocs.io/en/latest/rest_api.html)
+* Grlc http://grlc.apps.coronawhy.org (SPARQL queries into RESTful APIs convertor)
+* Doccano http://doccano.apps.coronawhy.org
+* Jupyter http://jupyter.apps.coronawhy.org (look for token in the logs)
+* OCR Tesseract http://ocr.apps.coronawhy.org (OCR as a service)
+* Portainer http://portainer.apps.coronawhy.org
+* Kibana http://kibana.apps.coronawhy.org
+
 BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your deployment (see deploys folder) to start enabled services.  
 
 For example, if you will put the following subdomain (labs.coronawhy.org) in .env file
