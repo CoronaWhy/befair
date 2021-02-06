@@ -8,14 +8,24 @@ The infrastructure was designed as out-of-the-box solution that research communi
 
 # Available services
 
-At the moment we have a number of services integrated in BeFAIR:
+Available basic infrastructure components:
 * traefik
 * postgresql
 * SOLR
-* Dataverse 
-* Semantic Gateway
-* Apache Airflow
-* Apache Superset (in progress) 
+
+The list of services integrated in BeFAIR:
+* Dataverse](http://github.com/IQSS/dataverse) 
+* [Semantic Gateway](https://github.com/Dans-labs/semantic-gateway)
+* [Apache Airflow](https://github.com/apache/airflow)
+* [Apache Superset](https://github.com/apache/superset) (in progress) 
+* [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
+
+BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your deployment (see deploys folder) to start enabled services.  
+For example, if you will put the following subdomain in .env file
+```
+traefikhost=labs.coronawhy.org
+```
+the services will be available on airflow.labs.coronawhy.org, superset.labs.coronawhy.org and so on.
 
 # Installation and deployment
 
