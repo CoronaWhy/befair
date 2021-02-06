@@ -1,0 +1,25 @@
+version: '3'
+services:
+
+  server:
+    image: fairdata/fairdatapoint:1.0.0
+    restart: always
+    volumes:
+      - ./application-production.yml:/fdp/application-production.yml
+      - ./rdfdata:/rdfdata
+
+  client:
+    image: fairdata/fairdatapoint-client:1.0.0
+    ports:
+      - 80:80
+    environment:
+      - FDP_HOST=server
+
+  mongo:
+    image: mongo:4.0.12
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+        - ./mongo/data:/data/db
+    command: mongod
