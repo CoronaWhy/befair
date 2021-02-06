@@ -1,0 +1,120 @@
+version: '3'
+services:
+  postgres_airflow:
+    image: postgres:13.1
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_DB=airflow
+      - POSTGRES_PASSWORD=airflow
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - 5434:5432
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./var/airflow/database/data:/var/lib/postgresql/data/pgdata
+      - ./var/airflow/database/logs:/var/lib/postgresql/data/log
+    command: >
+      postgres
+        -c listen_addresses=*
+        -c logging_collector=on
+        -c log_destination=stderr
+        -c max_connections=200
+    networks:
+      - traefik
+  redis:
+    image: redis:5.0.5
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - 6379:6379
+    networks:
+      - traefik
+  webserver:
+    #user: root
+    env_file:
+      - airflow.env
+    image: apache/airflow:2.0.0-python3.8
+    ports:
+      - 8088:8080
+    volumes:
+      - ./var/airflow/dags:/opt/airflow/dags
+      - ./var/airflow/logs:/opt/airflow/logs
+      - ./var/airflow/files:/opt/airflow/files
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.namespaces.rule=Host(`airflow.${traefikhost}`)"
+      - "traefik.http.routers.namespaces.tls=true"
+      - "traefik.http.routers.namespaces.tls.certresolver=myresolver"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 8s
+        max_attempts: 3
+    depends_on:
+      - postgres_airflow
+      - redis
+    command: webserver
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /opt/airflow/airflow-webserver.pid ]"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    networks:
+      - traefik
+  flower:
+    image: apache/airflow:2.0.0-python3.8
+    env_file:
+      - airflow.env
+    ports:
+      - 5555:5555
+    depends_on:
+      - redis
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 8s
+        max_attempts: 3
+    volumes:
+      - ./var/airflow/logs:/opt/airflow/logs
+    command: celery flower
+    networks:
+      - traefik
+  scheduler:
+    image: apache/airflow:2.0.0-python3.8
+    env_file:
+      - airflow.env
+    volumes:
+      - ./var/airflow/dags:/opt/airflow/dags
+      - ./var/airflow/logs:/opt/airflow/logs
+      - ./var/airflow/files:/opt/airflow/files
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: scheduler
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 8s
+        max_attempts: 3
+    networks:
+      - traefik
+  worker:
+    image: apache/airflow:2.0.0-python3.8
+    env_file:
+      - airflow.env
+    volumes:
+      - ./var/airflow/dags:/opt/airflow/dags
+      - ./var/airflow/logs:/opt/airflow/logs
+      - ./var/airflow/files:/opt/airflow/files
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: celery worker
+    depends_on:
+      - scheduler
+
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 8s
+        max_attempts: 3
+    networks:
+      - traefik

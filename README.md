@@ -6,6 +6,17 @@ All selected services should be available on a selected subdomain name and could
 
 The infrastructure was designed as out-of-the-box solution that research community can install with one command just as normal Operating System. The roadmap includes releases containing Open Data available for the different sciences, however COVID-19 Data Hub is our current priority.
 
+# Available services
+
+At the moment we have a number of services integrated in BeFAIR:
+* traefik
+* postgresql
+* SOLR
+* Dataverse 
+* Semantic Gateway
+* Apache Airflow
+* Apache Superset (in progress) 
+
 # Installation and deployment
 
 You need Docker and Docker Compose before you'll be able to run BeFAIR:
