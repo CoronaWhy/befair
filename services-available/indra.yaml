@@ -1,0 +1,11 @@
+version: '3'
+services:  
+  indra:
+    networks:
+      - traefik
+    image: labsyspharm/indra
+    command: python /sw/indra/rest_api/api.py
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.indra.rule=Host(`indra.${traefikhost}`)"
+      - "traefik.http.services.indra.loadbalancer.server.port=8080"
