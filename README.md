@@ -17,6 +17,7 @@ The list of services integrated in BeFAIR:
 * [Dataverse](http://github.com/IQSS/dataverse) 
 * [Semantic Gateway](https://github.com/Dans-labs/semantic-gateway)
 * [Apache Airflow](https://github.com/apache/airflow)
+* [INDRA](https://indralab.github.io) (INDRA REST API https://indra.readthedocs.io/en/latest/rest_api.html)
 * [Apache Superset](https://github.com/apache/superset) (in progress) 
 * [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
 
@@ -24,7 +25,6 @@ To Do (we re accepting Pull Requests, please join the project if you want to con
 * CoronaWhy API (FastAPI with OpenAPI spec)
 * Elasticsearch 
 * SPARQL endpoint (Virtuoso as a service)
-* INDRA (INDRA REST API https://indra.readthedocs.io/en/latest/rest_api.html)
 * Grlc (SPARQL queries into RESTful APIs convertor)
 * Doccano 
 * Jupyter 
@@ -32,6 +32,11 @@ To Do (we re accepting Pull Requests, please join the project if you want to con
 * Kibana 
 
 BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your deployment (see deploys folder) to start enabled services.  
+
+if you want to enable some service, for example, INDRA, run this from ./deploys/your_domain_name where your_domain_name should correspond to your domain (default is localhost):
+```
+ln -s ../../services-available/indra.yaml indra.yaml
+```
 
 For example, if you will put the following subdomain (labs.coronawhy.org) in .env file
 ```
