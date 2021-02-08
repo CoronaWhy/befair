@@ -6,6 +6,39 @@ All selected services should be available on a selected subdomain name and could
 
 The infrastructure was designed as out-of-the-box solution that research community can install with one command just as normal Operating System. The roadmap includes releases containing Open Data available for the different sciences, however COVID-19 Data Hub is our current priority.
 
+# Available and planned services
+
+Available basic infrastructure components:
+* traefik
+* postgresql
+* SOLR
+
+The list of services integrated in BeFAIR:
+* [Dataverse](http://github.com/IQSS/dataverse) 
+* [Semantic Gateway](https://github.com/Dans-labs/semantic-gateway)
+* [Apache Airflow](https://github.com/apache/airflow)
+* [Apache Superset](https://github.com/apache/superset) (in progress) 
+* [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
+
+To Do (we re accepting Pull Requests, please join the project if you want to contribute!):
+* CoronaWhy API (FastAPI with OpenAPI spec)
+* Elasticsearch 
+* SPARQL endpoint (Virtuoso as a service)
+* INDRA (INDRA REST API https://indra.readthedocs.io/en/latest/rest_api.html)
+* Grlc (SPARQL queries into RESTful APIs convertor)
+* Doccano 
+* Jupyter 
+* OCR Tesseract (OCR as a service)
+* Kibana 
+
+BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your deployment (see deploys folder) to start enabled services.  
+
+For example, if you will put the following subdomain (labs.coronawhy.org) in .env file
+```
+traefikhost=labs.coronawhy.org
+```
+the services will be available on airflow.labs.coronawhy.org, superset.labs.coronawhy.org and so on.
+
 # Installation and deployment
 
 You need Docker and Docker Compose before you'll be able to run BeFAIR:
