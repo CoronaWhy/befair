@@ -19,8 +19,7 @@ services:
         -c logging_collector=on
         -c log_destination=stderr
         -c max_connections=200
-    networks:
-      - traefik
+
   redis:
     image: redis:5.0.5
     environment:
@@ -28,8 +27,6 @@ services:
       REDIS_PORT: 6379
     ports:
       - 6379:6379
-    networks:
-      - traefik
   webserver:
     #user: root
     env_file:
@@ -61,8 +58,7 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
-    networks:
-      - traefik
+
   flower:
     image: apache/airflow:2.0.0-python3.8
     env_file:
@@ -79,8 +75,6 @@ services:
     volumes:
       - ./var/airflow/logs:/opt/airflow/logs
     command: celery flower
-    networks:
-      - traefik
   scheduler:
     image: apache/airflow:2.0.0-python3.8
     env_file:
@@ -96,8 +90,6 @@ services:
         condition: on-failure
         delay: 8s
         max_attempts: 3
-    networks:
-      - traefik
   worker:
     image: apache/airflow:2.0.0-python3.8
     env_file:
@@ -116,5 +108,3 @@ services:
         condition: on-failure
         delay: 8s
         max_attempts: 3
-    networks:
-      - traefik

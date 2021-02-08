@@ -1,8 +1,6 @@
 version: '3'
 services:
     reverse-proxy:
-      networks:
-        - traefik
    # The official v2 Traefik docker image
       image: traefik:v2.2
     # Enables the web UI and tells Traefik to listen to docker
@@ -51,6 +49,3 @@ services:
         # below are test:test and test2:test2 passwords
         - "traefik.http.middlewares.auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/,test2:$$apr1$$d9hr9HBB$$4HxwgUir3HP4EsggP/QNo0"
 
-networks:
-  traefik:
-    external: true

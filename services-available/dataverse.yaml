@@ -1,8 +1,6 @@
 version: '3'
 services:
     dataverse:
-      networks:
-        - traefik
       #image: ekoindarto/dataverse-cvm:5.0
       image: coronawhy/dataverse:5.2.2-cv
       # privileged: true

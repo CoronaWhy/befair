@@ -1,8 +1,6 @@
 version: '3'
 services:
     solr:
-      networks:
-        - traefik
       image: ekoindarto/solr-cvm:latest
       privileged: true
       ports:

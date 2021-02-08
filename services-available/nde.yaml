@@ -1,8 +1,6 @@
 version: '3'
 services:
     nde:
-      networks:
-        - traefik
       image: coronawhy/nde
       ports:
         - "8003:8080"

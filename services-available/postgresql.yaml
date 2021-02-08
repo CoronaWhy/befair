@@ -1,8 +1,6 @@
 version: '3'
 services:
     postgres:
-      networks:
-        - traefik
       ports:
         - "5433:5432"
       image: library/postgres:10.13
