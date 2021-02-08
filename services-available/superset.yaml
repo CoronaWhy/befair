@@ -20,15 +20,17 @@ x-superset-depends-on: &superset-depends-on
   - redis
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
-  - ./docker:/app/docker
-  - ./superset:/app/superset
-  - ./superset-frontend:/app/superset-frontend
+  - ./superset/docker:/app/docker
+  - ./superset/superset:/app/superset
+  - ./superset/superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
-  - ./tests:/app/tests
+  - ./superset/tests:/app/tests
 
 version: "3.7"
 services:
   redis:
+    networks:
+      - traefik
     image: redis:3.2
     container_name: superset_cache
     restart: unless-stopped
@@ -38,6 +40,8 @@ services:
       - redis:/data
 
   db:
+    networks:
+      - traefik
     env_file: .env_superset
     image: postgres:10
     container_name: superset_db
@@ -48,13 +52,15 @@ services:
       - db_home:/var/lib/postgresql/data
 
   superset:
+    networks:
+      - traefik
     env_file: .env_superset
     image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
-      - 80:8088
+      - 8089:8088
     user: "root"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
@@ -67,6 +73,8 @@ services:
       - "traefik.http.routers.namespaces.tls.certresolver=myresolver"
 
   superset-init:
+    networks:
+      - traefik
     image: *superset-image
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
@@ -78,6 +86,8 @@ services:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-node:
+    networks:
+      - traefik
     image: node:12
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
@@ -86,6 +96,8 @@ services:
     volumes: *superset-volumes
 
   superset-worker:
+    networks:
+      - traefik
     image: *superset-image
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
@@ -96,6 +108,8 @@ services:
     volumes: *superset-volumes
 
   superset-tests-worker:
+    networks:
+      - traefik
     image: *superset-image
     container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
@@ -106,7 +120,6 @@ services:
       REDIS_CELERY_DB: 2
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
-    network_mode: host
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
