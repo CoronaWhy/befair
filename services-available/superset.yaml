@@ -48,7 +48,7 @@ services:
       - db_home:/var/lib/postgresql/data
 
   superset:
-    env_file: docker/.env
+    env_file: .env_superset
     image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
@@ -60,6 +60,11 @@ services:
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.namespaces.rule=Host(`superset.${traefikhost}`)"
+      - "traefik.http.routers.namespaces.tls=true"
+      - "traefik.http.routers.namespaces.tls.certresolver=myresolver"
 
   superset-init:
     image: *superset-image
