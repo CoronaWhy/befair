@@ -1,4 +1,4 @@
-version: '3'
+version: '3.7'
 services:
     dataverse:
       #image: ekoindarto/dataverse-cvm:5.0
@@ -17,8 +17,8 @@ services:
 
         - "4848:4848"
         - "8085:8080"
-        - "CVM_SQL=https://github.com/IQSS/dataverse-docker/releases/download/5.1.1-cv/cv-update.sql"
-        - "CVM_CONFIG=https://github.com/IQSS/dataverse-docker/releases/download/5.1.1-cv/cv-keywords.json"
+        - "CVM_SQL=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/cv-update.sql"
+        - "CVM_CONFIG=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/cv-keywords.json"
         - "LANG=en"
         - "cvManager=http://"
         - "BUNDLEPROPERTIES=Bundle.properties"
@@ -40,7 +40,7 @@ services:
         - "RSERVE_PORT=6311"
         - "RSERVE_USER=rserve"
         - "RSERVE_PASSWORD=rserve"
-        - "JVM_OPTS='-Xmx1g -Xms1g -XX:MaxPermSize=2g -XX:PermSize=2g'"
+        - "JVM_OPTS='-Xmx10g -Xms10g -XX:MaxPermSize=20g -XX:PermSize=20g'"
       depends_on:
         - solr
 #        - ns
