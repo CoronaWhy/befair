@@ -1,0 +1,1 @@
+../../mk/deploys-template.mk
