@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+    clam:
+      image: coronawhy/clam:latest
+      ports:
+        - "8087:8080"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.clam.rule=Host(`clam.${traefikhost}`)"
+        - "traefik.http.services.clam.loadbalancer.server.port=8080"
+        - "traefik.http.routers.clam.tls=true"
+        - "traefik.http.routers.clam.tls.certresolver=myresolver"
+
+

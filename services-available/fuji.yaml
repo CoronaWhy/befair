@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+    fuji:
+      image: coronawhy/fuji:latest
+      ports:
+        - "8088:1071"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.fuji.rule=Host(`fuji.${traefikhost}`)"
+        - "traefik.http.services.fuji.loadbalancer.server.port=1079"
+        - "traefik.http.routers.fuji.tls=true"
+        - "traefik.http.routers.fuji.tls.certresolver=myresolver"
+
+
