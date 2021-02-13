@@ -1,0 +1,9 @@
+version: '3.7'
+services:
+    whoami:
+      image: containous/whoami
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.whoami.entrypoints=web"
+        - "traefik.http.routers.whoami.rule=Path(`/whoami`)"
+
