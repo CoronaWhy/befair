@@ -41,9 +41,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.namespaces.rule=Host(`airflow.${traefikhost}`)"
-      - "traefik.http.routers.namespaces.tls=true"
-      - "traefik.http.routers.namespaces.tls.certresolver=myresolver"
+      - "traefik.http.routers.airflow.rule=Host(`airflow.${traefikhost}`)"
+      - "traefik.http.routers.airflow.tls=true"
+      - "traefik.http.routers.airflow.tls.certresolver=myresolver"
     deploy:
       restart_policy:
         condition: on-failure
