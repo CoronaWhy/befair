@@ -58,6 +58,16 @@ up:
 	docker-compose up -d
 .PHONY: up
 
+debug:
+        docker-compose up
+.PHONY: debug
+
+init:
+        docker-compose up
+        docker-compose run webserver db init
+        docker-compose run webserver users create -r Admin -u admin -e team@coronawhy.org -f admin -l user -p admin
+.PHONY: init
+
 # help: 'docker-compose up' with dummy override entrypoint for dataverse. dataverse need to be run manual
 up-manual:: COMPOSE_FILE=$(COMPOSE_FILE):/tmp/entrypoint.override.yaml
 up-manual::
