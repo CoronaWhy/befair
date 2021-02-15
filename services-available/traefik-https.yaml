@@ -1,0 +1,51 @@
+version: '3.7'
+services:
+    reverse-proxy:
+   # The official v2 Traefik docker image
+      image: traefik:v2.2
+    # Enables the web UI and tells Traefik to listen to docker
+      command:
+        - "--api=true"
+        - "--api.dashboard=true"
+        - "--api.insecure=false"
+        - "--providers.docker=true"
+        - "--providers.docker.exposedbydefault=false"
+        - "--providers.docker.network=traefik"
+        - "--entrypoints.web.address=:80"
+        - "--entrypoints.websecure.address=:443"
+        - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+        - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+        - "--entrypoints.web.http.redirections.entryPoint.priority=10" # disable permanent forwarding for every route
+        - "--certificatesresolvers.myresolver.acme.tlschallenge=true" # <== Enable TLS-ALPN-01 to generate and renew ACME certs
+        - "--certificatesresolvers.myresolver.acme.email=${useremail}"
+        - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+        - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+
+      ports:
+        # The HTTP port
+        - "80:80"
+        # The HTTPS port
+        - "443:443"
+        # The Web UI (enabled by --api.insecure=true)
+        # - "8089:8080"
+      volumes:
+        # So that Traefik can listen to the Docker events
+        - /var/run/docker.sock:/var/run/docker.sock
+        # volume to store letsencrypt certificates
+        - ./var/security/letsencrypt:/letsencrypt
+      # Dynamic Configuration
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.dashboard.entrypoints=websecure"
+        - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
+        - "traefik.http.routers.dashboard.rule=Host(`dashboard.${traefikhost}`)"
+        - "traefik.http.routers.dashboard.service=api@internal"
+        - "traefik.http.routers.dashboard.tls=true"
+        - "traefik.http.routers.dashboard.middlewares=auth"
+
+        # https://doc.traefik.io/traefik/middlewares/basicauth/
+        # sudo apt install apache2-utils
+        # echo $(htpasswd -nb user password) | sed -e 's/\$/$$/g'
+        # below are test:test and test2:test2 passwords
+        - "traefik.http.middlewares.auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/,test2:$$apr1$$d9hr9HBB$$4HxwgUir3HP4EsggP/QNo0"
+
