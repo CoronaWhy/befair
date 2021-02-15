@@ -59,13 +59,19 @@ up:
 .PHONY: up
 
 debug:
-        docker-compose up
+	docker-compose up
 .PHONY: debug
 
+airflow:
+	docker-compose run webserver db init
+	docker-compose run webserver users create -r Admin -u admin -e team@coronawhy.org -f admin -l user -p admin
+.PHONY: airflow
+
+# init and start everything
 init:
-        docker-compose up
-        docker-compose run webserver db init
-        docker-compose run webserver users create -r Admin -u admin -e team@coronawhy.org -f admin -l user -p admin
+	docker-compose run webserver db init
+	docker-compose run webserver users create -r Admin -u admin -e team@coronawhy.org -f admin -l user -p admin
+	docker-compose up
 .PHONY: init
 
 # help: 'docker-compose up' with dummy override entrypoint for dataverse. dataverse need to be run manual
