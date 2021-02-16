@@ -3,17 +3,22 @@
  - allow run several deployments in same host
    - fix tcp ports intersection
  - build custom docker images from images/
- - make config
- - make new-deployment
+ + make config
+ + make new-deployment
  - add to HACKING.md example how to make new serivce using whoami service
+ - implement consistency of deployment checking (see check_consistency() in bin/menuconfig)
+ - handle .env files in bin/menuconfig
+ - track service dependence from other services
+ - add possibility remove (backup?) deployments
 
- wdk functionality:
- 
- - add/remove service to current deployment from services-available/
-    - symbolic link default yaml
+ + add/remove service to current deployment from services-available/
+    + symbolic link default yaml
     - copy of example env/config/secrets files
 
  - create new service from skeleton typical compose service ..
+    + create new deployment by copying existent
+    + create new deployment from scratch
+      - use some skeleton project or it(?)
 
  - switch between default service and deployment specific and/or customized service
     - backup/remove service customizations 

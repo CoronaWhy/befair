@@ -1,0 +1,307 @@
+#!/bin/sh -e
+
+BASEDIR=$(realpath $(dirname $(realpath $0))/..)
+cd $BASEDIR
+
+DEPLOYS_DIR=deploys
+DEPLOY_ACTIVE_LINK=deploy-active
+SERVICES_AVAILABLE_DIR=services-available
+
+################################
+msg() {
+    TYPE=$1
+    shift
+    case "$TYPE" in
+        warn) printf "%s\n" "$*" >&2 ;;
+        err)  printf "%s\n" "$*" >&2 ;;
+        *)    printf "%s\n" "$*" ;;
+    esac
+}
+
+die() {
+    msg err "$*"
+    exit 1
+}
+
+check_active() {
+    if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
+        if [ -e $DEPLOY_ACTIVE_LINK ]; then
+            die "$DEPLOY_ACTIVE_LINK is not a symbolic link." \
+                "It's should be link to active deployment setup"
+        fi
+    fi
+}
+
+check_consistency() {
+    # TODO: check that links deploys/localhost/whoami.yaml
+    # is link to file with same name services-available/whoami.yaml
+
+    # TODO: check is link deploys/localhost/Makefile to ../../mk/deploys-template.mk
+    # if not, check if there is string 'include ../../mk/deploys-template.mk'
+
+    # TODO: check .env file in deployments
+    true
+}
+
+get_deploys_list() {
+     find "$1" -maxdepth 1 -type d -printf "%P\n"
+}
+
+get_services_active_list() {
+    unset SERVICES
+
+    ls $1/*.yaml 2> /dev/null 1>&2 || return
+
+    for SERVICE in $1/*.yaml; do
+        SERVICES="$SERVICES $(basename $SERVICE .yaml)"
+    done
+
+    echo $SERVICES
+    unset SERVICES
+}
+
+get_services_available_list() {
+    unset SERVICES
+
+    for SERVICE in $SERVICES_AVAILABLE_DIR/*.yaml; do
+        SERVICE=$(basename $SERVICE)
+        if [ -z "$1" -o ! -e $1/$SERVICE ]; then
+            SERVICES="$SERVICES $(basename $SERVICE .yaml)"
+        fi
+    done
+
+    echo $SERVICES
+    unset SERVICES
+}
+
+# function will generate:
+# 1. Update PROMPT variable from $1 parameter
+# 2. Use value of variable name from $2
+# 2. MENU_ITEM_<$2>_<number> variable name from $2.. parameters
+# 3. Add ITEMS to PROMPT
+gen_menu_items() {
+
+    PROMPT="${PROMPT}$1"
+    VAR_NAME="$2"
+
+    # set $@ from variable name in $2
+    eval set \$$VAR_NAME
+
+    [ -z "$MENU_INDEX" ] && MENU_INDEX=0
+    for ITEM in $@; do
+        MENU_INDEX=$((MENU_INDEX + 1))
+        PROMPT="${PROMPT}$(printf "%2d)" ${MENU_INDEX}) $ITEM\n"
+        eval MENU_ITEM_${VAR_NAME}_$MENU_INDEX="\$ITEM"
+    done
+    PROMPT="${PROMPT}\n"
+}
+
+# $1: variable name to return deployment namw
+# $2: optional parameter "new", to check if deployment already exist
+ask_deploy_name() {
+
+    # clear variable if it still exist from last time
+    unset $1
+
+    # ctrl-c will cancel action
+    trap 'CTRL_C=1' INT
+
+    while printf "Enter deployment name: "
+          read ANS
+    do
+        if [ -n "$CTRL_C" ]; then
+            break
+        fi
+
+        if echo "$ANS" | grep -q '[^a-zA-Z0-9_-]'; then
+            msg warn "Deployment name must consist only 'a-z', 'A-Z', '0-9', '_' or '-'"
+            continue
+        fi
+
+        if [ "$2" = "new" -a -e $DEPLOYS_DIR/$ANS ]; then
+            msg warn "Deployment \"$ANS\" already exist"
+            continue
+        fi
+
+        eval $1="\$ANS"
+        break
+    done
+    trap - INT
+    unset CTRL_C
+}
+
+clear_variables_by_prefix() {
+    for VAR in $(set | grep -o "^$1[A-Z0-9_]*"); do
+        unset $VAR
+    done
+}
+
+menu_unset_variables() {
+    unset PROMPT MENU_INDEX
+    clear_variables_by_prefix MENU_ITEM_
+}
+
+######################################################################
+menu_show_active_deployment() {
+    echo "=============================================================================="
+    if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
+        msg warn "No active deployment"
+        msg warn ""
+        return
+    fi
+
+    DEPLOY_ACTIVE=$(basename $(readlink $DEPLOY_ACTIVE_LINK))
+    echo -n "Active deployment is \"$DEPLOY_ACTIVE\". "
+
+    SERVICES_ACTIVE=$(get_services_active_list $DEPLOY_ACTIVE_LINK)
+    if [ -n "$SERVICES_ACTIVE" ]; then
+        gen_menu_items "Choose active service to disable it:\n" SERVICES_ACTIVE
+    fi
+
+    SERVICES_AVAILABLE=$(get_services_available_list $DEPLOY_ACTIVE_LINK)
+    if [ -n "$SERVICES_AVAILABLE" ]; then
+        gen_menu_items "Choose available service to enable it:\n" SERVICES_AVAILABLE
+    fi
+}
+
+menu_show_prompt() {
+
+    if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
+        DEPLOYS=$(get_deploys_list $DEPLOYS_DIR)
+    fi
+
+    case $MENU_MODE in
+        show-deploy-available)
+            if [ -L $DEPLOY_ACTIVE_LINK ]; then
+                DEPLOYS=$(get_deploys_list $DEPLOYS_DIR)
+                gen_menu_items "Available deployments. Choose deployment to make it active:\n" DEPLOYS
+            fi
+        ;;
+
+        create-deploy)
+            COPY_DEPLOY="$(get_deploys_list $DEPLOYS_DIR)"
+            gen_menu_items "Available deployments. Choose deployment to make COPY of it:\n" COPY_DEPLOY
+            PROMPT="${PROMPT} m) Make new deployment\n"
+        ;;
+
+        *)
+            if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
+                gen_menu_items "Available deployments. Choose deployment to make it active:\n" DEPLOYS
+            else
+                PROMPT="${PROMPT} l) List of available deployments to activate one\n"
+            fi
+        ;;
+    esac
+
+    if [ "$MENU_MODE" != "create-deploy" ]; then
+        PROMPT="${PROMPT} c) Create new deployment\n"
+    fi
+
+    if [ -L $DEPLOY_ACTIVE_LINK ]; then
+        PROMPT="${PROMPT} d) Disable current deployment\n"
+        PROMPT="${PROMPT} r) Rename current deployment\n"
+    fi
+    PROMPT="${PROMPT} q) Quit\n\nChoose> "
+    unset MENU_MODE
+
+    printf "$PROMPT"
+}
+
+# function handle MENU_ITEM_* variables and apply actions according them
+menu_numeric_index_action() {
+    for TYPE in DEPLOYS SERVICES_ACTIVE SERVICES_AVAILABLE COPY_DEPLOY; do
+        eval ITEM=\$MENU_ITEM_${TYPE}_$ANS
+
+        if [ -z "$ITEM" ]; then
+            continue
+        fi
+        case $TYPE in
+            DEPLOYS)
+                ln -fns $DEPLOYS_DIR/$ITEM $DEPLOY_ACTIVE_LINK
+                msg info "Deployment \"$ITEM\" active now"
+            ;;
+
+            SERVICES_ACTIVE)
+                if [ ! -L $DEPLOY_ACTIVE_LINK/$ITEM.yaml ]; then
+                    msg err "Active service \"$ITEM\" is not symolic link"
+                    # FIXME: implement. "Do you want to remove it?"
+                else
+                    rm $DEPLOY_ACTIVE_LINK/$ITEM.yaml
+                    msg info "Active service \"$ITEM\" disabled"
+                fi
+            ;;
+
+            SERVICES_AVAILABLE)
+                ln -frs $SERVICES_AVAILABLE_DIR/$ITEM.yaml $DEPLOY_ACTIVE_LINK/
+                msg info "Available service \"$ITEM\" enabled"
+            ;;
+
+            COPY_DEPLOY)
+                ask_deploy_name DEPLOY_NEW new
+                if [ -n "$DEPLOY_NEW" ]; then
+                    cp -ra $DEPLOYS_DIR/$ITEM $DEPLOYS_DIR/$DEPLOY_NEW
+                    msg info "Deployment \"$DEPLOY_NEW\" created from \"$ITEM\""
+                fi
+            ;;
+
+            *)
+                msg warn "Unknown action $TYPE"
+            ;;
+       esac
+
+       msg info ""
+       break
+   done
+}
+
+menu_main() {
+
+    clear
+    while menu_unset_variables
+          menu_show_active_deployment
+          menu_show_prompt
+          read ANS
+    do
+        clear
+
+        case $ANS in
+            [0-9]*) menu_numeric_index_action       ;;
+            l)      MENU_MODE=show-deploy-available ;;
+            c)      MENU_MODE=create-deploy         ;;
+            m)
+                ask_deploy_name DEPLOY_NEW new
+                if [ -n "$DEPLOY_NEW" ]; then
+                    mkdir -p $DEPLOYS_DIR/$DEPLOY_NEW
+                    ln -rs $DEPLOYS_DIR/../mk/deploys-template.mk $DEPLOYS_DIR/$DEPLOY_NEW/Makefile
+                    # TODO: create .env file
+                    msg info "Deployment \"$DEPLOY_NEW\" created"
+                fi
+            ;;
+            r)
+                ask_deploy_name DEPLOY_NEW new
+                if [ -n "$DEPLOY_NEW" ]; then
+                    DEPLOY_CURRENT=$(readlink $DEPLOY_ACTIVE_LINK)
+                    mv $DEPLOY_CURRENT $DEPLOYS_DIR/$DEPLOY_NEW
+                    ln -fns $DEPLOYS_DIR/$DEPLOY_NEW $DEPLOY_ACTIVE_LINK
+                    msg info "Deployment \"$(basename $DEPLOY_CURRENT)\" renamed to\"$DEPLOY_NEW\""
+                fi
+            ;;
+            d)
+                [ -L $DEPLOY_ACTIVE_LINK ] && rm $DEPLOY_ACTIVE_LINK
+                msg info "Active deployment \"$DEPLOY_ACTIVE\" disabled."
+            ;;
+
+            q) exit ;;
+            "") ;;
+            *) printf "Wrong input\n\n" >&2 ;;
+          esac
+    done
+}
+
+################################
+
+# FIXME: check deploys/ exist
+check_active
+check_consistency
+
+menu_main $DEPLOYS

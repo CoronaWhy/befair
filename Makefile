@@ -6,17 +6,9 @@ help:
 .PHONY: help
 
 # help: run configurator
-config:
-	#@echo $(notdir $(basename $(wildcard services-available/*.yaml)))
-	@echo FIXME: config not yet implemented
-	@exit 1
-.PHONY: config
-
-# help: run wizard for deployment create
-create-deployment:
-	@echo FIXME: create-deployment not yet implemented
-	@exit 1
-.PHONY: create
+menuconfig:
+	@bin/menuconfig
+.PHONY: menuconfig
 
 # help: check deployment consistency
 check:
@@ -30,7 +22,7 @@ check:
                 "It's should be link to active deploy setup" >&2; \
 			exit 1;                                               \
 		fi;                                                       \
-        $(MAKE) config;                                           \
+        $(MAKE) menuconfig;                                       \
     fi
 	$(MAKE) -C deploy-active $@
 .PHONY: %

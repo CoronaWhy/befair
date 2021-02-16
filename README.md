@@ -80,7 +80,6 @@ After Docker is installed you can run BeFAIR:
 ```
 git clone https://github.com/CoronaWhy/befair
 cd befair
-cd deploys/localhost 
 make up
 ```
 
