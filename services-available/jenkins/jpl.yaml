@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+    jpl:
+      image: coronawhy/jpl:latest
+      ports:
+        - "8088:1071"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.jpl.rule=Host(`jpl.${traefikhost}`)"
+        - "traefik.http.services.jpl.loadbalancer.server.port=1079"
+        - "traefik.http.routers.jpl.tls=true"
+        - "traefik.http.routers.jpl.tls.certresolver=myresolver"
+
+
