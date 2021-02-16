@@ -2,9 +2,17 @@
 BeFAIR (Be Findable, Accessible, Interoperable, Reusable) Open Science Framework.
 
 BeFAIR is a Common Distributed Research Infrastructure where users can add and run any tools and components by themselves using Debian's way of managing services.
-All selected services should be available on a selected subdomain name and could be easily integrated together with Dataverse, BeFAIR data repository.
+All selected services should be available on a selected subdomain name and could be easily integrated together with [Dataverse](https://dataverse.org), BeFAIR data repository.
 
-The infrastructure was designed as out-of-the-box solution that research community can install with one command just as normal Operating System. The roadmap includes releases containing Open Data available for the different sciences, however COVID-19 Data Hub is our current priority.
+BeFAIR distributive was designed as out-of-the-box Distributed Networked Infrastructure that any research community can install with one command just as normal Operating System. The roadmap includes releases containing Open Data available for the different sciences, however [COVID-19 Data Hub](http://datasets.coronawhy.org) is our current priority.
+
+# Acknowledgements
+BeFAIR infrastructure is standing the Shoulder of Giants. Please find below the acknowledgements for resources and contributions.
+
+Region | Project  | Grant information and description |
+| ------------- | ------------- | ------------- |
+| European Union | [SSHOC](https://sshopencloud.eu) | H2020-INFRAEOSC-04-2018, grant agreement #823782 |
+| European Union | [EOSC Synergy](https://www.eosc-synergy.eu) | INFRAEOSC-05-2018-2019, grant agreement No 857647 |
 
 # Available and planned services
 
