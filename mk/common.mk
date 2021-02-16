@@ -64,12 +64,13 @@ debug:
 
 airflow:
 	docker-compose run webserver db init
-        # not secure, just for dev
-        chmod -R 777 ./var/airflow
+	# not secure, just for dev
+	chmod -R 777 ./var/airflow
 	docker-compose run webserver users create -r Admin -u admin -e team@coronawhy.org -f admin -l user -p admin
 .PHONY: airflow
 
 superset:
+        # clone latest version ready for deployment
 	git clone http://github.com/apache/superset
 .PHONY: superset
 

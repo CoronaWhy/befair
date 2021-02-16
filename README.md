@@ -83,6 +83,12 @@ cd befair
 make up
 ```
 
+Warning: please use init commands for Apache Airflow and Apache Superset:
+```
+make airflow
+make superset
+```
+
 # Citation for the academic use
 
 Please cite this work as follows:
