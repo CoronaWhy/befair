@@ -1,0 +1,13 @@
+version: '3.7'
+services:
+    apibox:
+      image: coronawhy/apibox:latest
+      ports:
+        - "8083:80"
+      labels:
+        - "traefik.enable=true"
+          # - "traefik.http.routers.apibox.entrypoints=web"
+        - "traefik.http.routers.apibox.rule=Host(`api.${traefikhost}`)"
+        - "traefik.http.routers.apibox.tls=true"
+        - "traefik.http.routers.apibox.tls.certresolver=myresolver"  
+
