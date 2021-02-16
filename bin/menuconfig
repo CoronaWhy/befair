@@ -141,6 +141,18 @@ menu_unset_variables() {
     clear_variables_by_prefix MENU_ITEM_
 }
 
+ask_yes() {
+    while printf "$1[yes/no]: "
+          read ANS
+    do
+        case $ANS in
+            yes) return 0;;
+            no)  return 1;;
+            *)   msg err "Wrong input";;
+        esac
+    done
+}
+
 ######################################################################
 menu_show_active_deployment() {
     echo "=============================================================================="
@@ -175,6 +187,7 @@ menu_show_prompt() {
             if [ -L $DEPLOY_ACTIVE_LINK ]; then
                 DEPLOYS=$(get_deploys_list $DEPLOYS_DIR)
                 gen_menu_items "Available deployments. Choose deployment to make it active:\n" DEPLOYS
+                PROMPT="${PROMPT} R) Remove deployment\n"
             fi
         ;;
 
@@ -182,6 +195,12 @@ menu_show_prompt() {
             COPY_DEPLOY="$(get_deploys_list $DEPLOYS_DIR)"
             gen_menu_items "Available deployments. Choose deployment to make COPY of it:\n" COPY_DEPLOY
             PROMPT="${PROMPT} m) Make new deployment\n"
+            PROMPT="${PROMPT} R) Remove deployment\n"
+        ;;
+
+        remove-deploy)
+            REMOVE_DEPLOY="$(get_deploys_list $DEPLOYS_DIR)"
+            gen_menu_items "Available deployments. Choose deployment to REMOVE it:\n" REMOVE_DEPLOY
         ;;
 
         *)
@@ -197,6 +216,10 @@ menu_show_prompt() {
         PROMPT="${PROMPT} c) Create new deployment\n"
     fi
 
+    if [ "$MENU_MODE" != "remove-deploy" ]; then
+        PROMPT="${PROMPT} R) Remove deployment\n"
+    fi
+
     if [ -L $DEPLOY_ACTIVE_LINK ]; then
         PROMPT="${PROMPT} d) Disable current deployment\n"
         PROMPT="${PROMPT} r) Rename current deployment\n"
@@ -209,7 +232,7 @@ menu_show_prompt() {
 
 # function handle MENU_ITEM_* variables and apply actions according them
 menu_numeric_index_action() {
-    for TYPE in DEPLOYS SERVICES_ACTIVE SERVICES_AVAILABLE COPY_DEPLOY; do
+    for TYPE in DEPLOYS SERVICES_ACTIVE SERVICES_AVAILABLE COPY_DEPLOY REMOVE_DEPLOY; do
         eval ITEM=\$MENU_ITEM_${TYPE}_$ANS
 
         if [ -z "$ITEM" ]; then
@@ -244,6 +267,20 @@ menu_numeric_index_action() {
                 fi
             ;;
 
+            REMOVE_DEPLOY)
+                if ask_yes "Do you really want REMOVE \"$ITEM\"? "; then
+                    if [ -L $DEPLOY_ACTIVE_LINK ]; then
+                        DEPLOY_CURRENT=$(basename $(readlink $DEPLOY_ACTIVE_LINK))
+                        if [ "$DEPLOY_CURRENT" = "$ITEM" ]; then
+                            rm $DEPLOY_ACTIVE_LINK
+                            msg info "Deployment \"$ITEM\" disabled"
+                        fi
+                    fi
+                    rm -r $DEPLOYS_DIR/$ITEM/
+                    msg info "Deployment \"$ITEM\" removed"
+                fi
+            ;;
+
             *)
                 msg warn "Unknown action $TYPE"
             ;;
@@ -268,6 +305,7 @@ menu_main() {
             [0-9]*) menu_numeric_index_action       ;;
             l)      MENU_MODE=show-deploy-available ;;
             c)      MENU_MODE=create-deploy         ;;
+            R)      MENU_MODE=remove-deploy         ;;
             m)
                 ask_deploy_name DEPLOY_NEW new
                 if [ -n "$DEPLOY_NEW" ]; then
