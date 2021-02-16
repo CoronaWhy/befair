@@ -79,10 +79,12 @@ get_services_available_list() {
 # 2. Use value of variable name from $2
 # 2. MENU_ITEM_<$2>_<number> variable name from $2.. parameters
 # 3. Add ITEMS to PROMPT
+# 4. optional $3 is name of fuction to generate additional info for item
 gen_menu_items() {
 
     PROMPT="${PROMPT}$1"
     VAR_NAME="$2"
+    FUNC_ADDITIONAL_INFO="$3"
 
     # set $@ from variable name in $2
     eval set \$$VAR_NAME
@@ -90,7 +92,13 @@ gen_menu_items() {
     [ -z "$MENU_INDEX" ] && MENU_INDEX=0
     for ITEM in $@; do
         MENU_INDEX=$((MENU_INDEX + 1))
-        PROMPT="${PROMPT}$(printf "%2d)" ${MENU_INDEX}) $ITEM\n"
+
+        ADDITIONAL_INFO=
+        if [ -n "$FUNC_ADDITIONAL_INFO" ]; then
+            eval ADDITIONAL_INFO="\"\$($FUNC_ADDITIONAL_INFO$ITEM)\""
+        fi
+
+        PROMPT="${PROMPT}$(printf "%2d) %-25s [ %s ]" ${MENU_INDEX} "$ITEM" "$ADDITIONAL_INFO")\n"
         eval MENU_ITEM_${VAR_NAME}_$MENU_INDEX="\$ITEM"
     done
     PROMPT="${PROMPT}\n"
@@ -186,7 +194,12 @@ menu_show_prompt() {
         show-deploy-available)
             if [ -L $DEPLOY_ACTIVE_LINK ]; then
                 DEPLOYS=$(get_deploys_list $DEPLOYS_DIR)
-                gen_menu_items "Available deployments. Choose deployment to make it active:\n" DEPLOYS
+
+                # to $DEPLOYS_DIR/ will be added ITEM in gen_menu_items
+                gen_menu_items "Available deployments. Choose deployment to make it active:\n" \
+                               DEPLOYS \
+                               "get_services_active_list $DEPLOYS_DIR/"
+
                 PROMPT="${PROMPT} R) Remove deployment\n"
             fi
         ;;
@@ -205,7 +218,10 @@ menu_show_prompt() {
 
         *)
             if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
-                gen_menu_items "Available deployments. Choose deployment to make it active:\n" DEPLOYS
+                # to $DEPLOYS_DIR/ will be added ITEM in gen_menu_items
+                gen_menu_items "Available deployments. Choose deployment to make it active:\n" \
+                               DEPLOYS \
+                               "get_services_active_list $DEPLOYS_DIR/"
             else
                 PROMPT="${PROMPT} l) List of available deployments to activate one\n"
             fi
