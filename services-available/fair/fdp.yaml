@@ -1,0 +1,10 @@
+version: '3.7'
+services:
+    fdp:
+      image: fairdata/fairdatapoint
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.fdp.rule=Host(`fdp.${traefikhost}`)"
+        - "traefik.http.routers.fdp.tls=true"
+        - "traefik.http.routers.fdp.tls.certresolver=myresolver"  
+
