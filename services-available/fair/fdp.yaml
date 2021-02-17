@@ -1,10 +1,21 @@
 version: '3.7'
 services:
+    fdpclient:
+      image: fairdata/fairdatapoint-client
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.fdpclient.rule=Host(`fdpclient.${traefikhost}`)"
+        - "traefik.http.routers.fdpclient.tls=true"
+        - "traefik.http.routers.fdpclient.tls.certresolver=myresolver"
     fdp:
       image: fairdata/fairdatapoint
+      ports:
+        - "8091:80"
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.fdp.rule=Host(`fdp.${traefikhost}`)"
         - "traefik.http.routers.fdp.tls=true"
         - "traefik.http.routers.fdp.tls.certresolver=myresolver"  
+    mongo:
+        image: mongo:4.0.12
 
