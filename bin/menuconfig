@@ -169,6 +169,19 @@ get_active_serivce_status() {
     fi
 }
 
+get_deploy_status() {
+
+    if [ ! -e "$1"/.env ]; then
+        echo 'No .env(!) '
+    fi
+
+    SERVICES=$(get_services_active_list $1)
+    if [ -n "$SERVICES" ]; then
+        echo services: $SERVICES
+    fi
+    unset SERVICES
+}
+
 ######################################################################
 menu_show_active_deployment() {
     echo "=============================================================================="
@@ -208,7 +221,7 @@ menu_show_prompt() {
                 # to $DEPLOYS_DIR/ will be added ITEM in gen_menu_items
                 gen_menu_items "Available deployments. Choose deployment to make it active:\n" \
                                DEPLOYS \
-                               "get_services_active_list $DEPLOYS_DIR/"
+                               "get_deploy_status $DEPLOYS_DIR/"
 
                 PROMPT="${PROMPT} R) Remove deployment\n"
             fi
@@ -231,7 +244,7 @@ menu_show_prompt() {
                 # to $DEPLOYS_DIR/ will be added ITEM in gen_menu_items
                 gen_menu_items "Available deployments. Choose deployment to make it active:\n" \
                                DEPLOYS \
-                               "get_services_active_list $DEPLOYS_DIR/"
+                               "get_deploy_status $DEPLOYS_DIR/"
             else
                 PROMPT="${PROMPT} l) List of available deployments to activate one\n"
             fi
