@@ -81,6 +81,12 @@ After Docker is installed you can run BeFAIR:
 ```
 git clone https://github.com/CoronaWhy/befair
 cd befair
+cd distributives
+```
+
+You'll find a lot of distributives for the different research communities there. Choose some of the, for example, "fair", and start with command:
+```
+cd fair
 make up
 ```
 
