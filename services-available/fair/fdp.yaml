@@ -10,7 +10,7 @@ services:
         - "traefik.http.routers.fdpclient.tls=true"
         - "traefik.http.routers.fdpclient.tls.certresolver=myresolver"
       volumes:
-        - ./fdp-config.yaml:/fdp/application.yml
+        - ./fdp.config:/fdp/application.yml
 
     fdp:
       image: fairdata/fairdatapoint
@@ -22,7 +22,7 @@ services:
         - "traefik.http.routers.fdp.tls=true"
         - "traefik.http.routers.fdp.tls.certresolver=myresolver"  
       volumes:
-        - ./fdp-config.yaml:/fdp/application.yml
+        - ./fdp.config:/fdp/application.yml
 
     mongo:
         image: mongo:4.0.12
