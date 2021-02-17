@@ -10,6 +10,11 @@ menuconfig:
 	@bin/menuconfig
 .PHONY: menuconfig
 
+# help: run configurator inside ubuntu container [portable]
+menuconfig-docker:
+	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
+.PHONY: menuconfig-docker
+
 # help: check deployment consistency
 check:
 	@echo FIXME: not yet implemented
