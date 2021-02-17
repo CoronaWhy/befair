@@ -4,6 +4,8 @@ services:
       image: fairdata/fairdatapoint-client
       ports:
         - "8091:80"
+      environment:
+        - FDP_HOST=fdp
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.fdpclient.rule=Host(`fdpclient.${traefikhost}`)"
