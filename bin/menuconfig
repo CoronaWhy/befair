@@ -12,8 +12,8 @@ msg() {
     TYPE=$1
     shift
     case "$TYPE" in
-        warn) printf "%s\n" "$*" >&2 ;;
-        err)  printf "%s\n" "$*" >&2 ;;
+        warn) printf "WARNING: %s\n" "$*" >&2 ;;
+        err)  printf "ERROR: %s\n" "$*" >&2 ;;
         *)    printf "%s\n" "$*" ;;
     esac
 }
@@ -161,7 +161,7 @@ ask_yes() {
     done
 }
 
-get_active_serivce_status() {
+get_active_service_status() {
     if [ -L $DEPLOY_ACTIVE_LINK/$1.yaml ]; then
         echo "is link to $(readlink $DEPLOY_ACTIVE_LINK/$1.yaml | sed 's,\(\.\./\)*,,')"
     else
@@ -190,6 +190,9 @@ menu_show_active_deployment() {
         msg warn ""
         return
     fi
+    if [ ! -e $DEPLOY_ACTIVE_LINK/.env ]; then
+        msg warn "There is no .env"
+    fi
 
     DEPLOY_ACTIVE=$(basename $(readlink $DEPLOY_ACTIVE_LINK))
     echo -n "Active deployment is \"$DEPLOY_ACTIVE\". "
@@ -198,7 +201,7 @@ menu_show_active_deployment() {
     if [ -n "$SERVICES_ACTIVE" ]; then
         gen_menu_items "Choose active service to disable it:\n" \
                        SERVICES_ACTIVE \
-                       "get_active_serivce_status "
+                       "get_active_service_status "
     fi
 
     SERVICES_AVAILABLE=$(get_services_available_list $DEPLOY_ACTIVE_LINK)
