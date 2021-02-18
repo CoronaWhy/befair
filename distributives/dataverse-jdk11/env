@@ -1,8 +1,7 @@
-COMPOSE_PROJECT_NAME=dataverse.org.ua
+COMPOSE_PROJECT_NAME=localhost
 
 # traefik settings
 traefikhost=dataverse.org.ua
-useremail=team@coronawhy.org
 
 # local postgres settings
 LC_ALL=C.UTF-8
