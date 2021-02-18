@@ -161,6 +161,14 @@ ask_yes() {
     done
 }
 
+get_active_serivce_status() {
+    if [ -L $DEPLOY_ACTIVE_LINK/$1.yaml ]; then
+        echo "is link to $(readlink $DEPLOY_ACTIVE_LINK/$1.yaml | sed 's,\(\.\./\)*,,')"
+    else
+        echo "is file $(readlink $DEPLOY_ACTIVE_LINK)/$1.yaml"
+    fi
+}
+
 ######################################################################
 menu_show_active_deployment() {
     echo "=============================================================================="
@@ -175,7 +183,9 @@ menu_show_active_deployment() {
 
     SERVICES_ACTIVE=$(get_services_active_list $DEPLOY_ACTIVE_LINK)
     if [ -n "$SERVICES_ACTIVE" ]; then
-        gen_menu_items "Choose active service to disable it:\n" SERVICES_ACTIVE
+        gen_menu_items "Choose active service to disable it:\n" \
+                       SERVICES_ACTIVE \
+                       "get_active_serivce_status "
     fi
 
     SERVICES_AVAILABLE=$(get_services_available_list $DEPLOY_ACTIVE_LINK)
