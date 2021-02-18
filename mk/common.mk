@@ -50,11 +50,45 @@ $(foreach mk,$(SERVICE_INCLUDE_MK), \
     $(eval include $(mk))\
 )
 
+OK   := $(shell printf "\"\e[1;32mok\e[0m\"")
+FAIL := $(shell printf "\"\e[1;31mfail\e[0m\"")
+
+# help: checking consistency of deploy
+check:
+	@printf "Checking 'docker-compose config -q' syntax - "
+	@useremail=dummy traefikhost=dummy docker-compose config -q && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
+
+	@printf 'Checking existing .env file - '
+	@[ -e .env ] && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
+
+	@printf 'Checking existing not only .override.yaml file - '
+	@ls *.yaml | grep -qv '\.override.yaml' > /dev/null && echo $(OK) \
+		|| { echo $(FAIL)'. Need at least one not override.yaml'; $(CHECK_EXIT) }
+
+	@printf 'Checking not existing *.yml files - '
+	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from deployment'; $(CHECK_EXIT) } || echo $(OK)
+
+	@printf 'Checking links point to files with same name - '
+	@for YAML in *.yaml; do \
+		if [ -L $$YAML ]; then \
+            FILE=$$(readlink $$YAML); \
+            if [ "$$(basename $$FILE)" != "$$(basename $$YAML)" ]; then \
+				[ -z "$$TEST_FAIL" ] && echo $(FAIL); \
+				echo "Link $$YAML point to file $$FILE with different name"; \
+				TEST_FAIL=1; \
+			fi; \
+        fi; \
+    done; \
+	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
+
+.PHONY: check
+
 docker-compose compose:
 	docker-compose $(P)
 
 # help: 'docker-compose up' with proper parameters
-up:
+up: CHECK_EXIT=exit 1;
+up: check
 	docker-compose up -d
 .PHONY: up
 
@@ -114,7 +148,7 @@ volume-prune-force:
 .PHONY: volume-prune-force
 
 # help: 'docker-compose down' and 'docker volume prune'
-reset: down down-dev volume-prune
+reset: down volume-prune
 .PHONY: reset
 
 # help: generate enviroment variables for current deployment. Can be user in shell as: eval \$(make env)
@@ -124,6 +158,13 @@ env: .env
 	@#env --ignore-environment sh -c "set -x;eval $$(/bin/cat .env); echo 123; export -p"
 .PHONY: env
 
+# help: bash with enviroment variables for current deployment to allow operate docker-compose directly
+bash: .env
+	@. ./.env; \
+		printf "\nbash with enviroment variables for current deployment. Try to run 'docker-compose config' for example\n\n"; \
+		bash -li || true
+.PHONY: bash
+
 .env:
-	@echo "You need to create .env file. TODO: give example?"
+	@echo "You need to create .env file"
 #endif # ($(DEPLOY_DIR),./)
