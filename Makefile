@@ -23,8 +23,7 @@ check-all:
 		printf "=============================";   \
 		printf " Checking %-20s " $$DIR;          \
 		printf "=============================\n"; \
-		$(MAKE) -C $$DIR -f $(PWD)/mk/distro-makefile.mk check;                   \
-		echo $$?; \
+		$(MAKE) -C $$DIR -f $(PWD)/mk/distro-makefile.mk check; \
 		echo;                                     \
 	done
 .PHONY: check-all
