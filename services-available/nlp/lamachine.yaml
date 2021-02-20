@@ -1,0 +1,12 @@
+version: '3.7'
+services:
+    lamachine:
+      image: proycon/lamachine
+      labels:
+        - "traefik.enable=true"
+          # - "traefik.http.routers.lamachine.entrypoints=web"
+        - "traefik.http.routers.lamachine.rule=Host(`lamachine.${traefikhost}`)"
+        - "traefik.http.services.lamachine.loadbalancer.server.port=8080"
+        - "traefik.http.routers.lamachine.tls=true"
+        - "traefik.http.routers.lamachine.tls.certresolver=myresolver"  
+

@@ -14,6 +14,7 @@ Region | Project  | Funding information | Component |
 | European Union | [CESSDA SaW](https://cordis.europa.eu/project/id/674939) | H2020-INFRADEV-1-2015-1, grant agreement #674939 | Dataverse as a service |
 | European Union | [SSHOC](https://sshopencloud.eu) | H2020-INFRAEOSC-04-2018, grant agreement #823782 | [Cloud Dataverse](https://www.sshopencloud.eu/news/developing-sshoc-dataverse) |
 | European Union | [EOSC Synergy](https://www.eosc-synergy.eu) | INFRAEOSC-05-2018-2019, grant agreement No 857647 | [SQAaaS](https://www.eosc-synergy.eu/home/software-services/) service |
+| European Union | [EOSC-hub](https://www.eosc-hub.eu) | H2020-EINFRA-12-2017, grant agreement #777536 | [DataTags](https://github.com/Dans-labs/datatags-service) as a service |
 | United States | [INDRA](https://indralab.github.io) | Defense Advanced Research Projects Agency under award W911NF-14-1-0397 | INDRA service |
 | European Union | [FAIRsFAIR](https://www.fairsfair.eu) | H2020-INFRAEOSC-2018-2020 Grant agreement 831558 | [F-UJI](https://www.fairsfair.eu/f-uji-automated-fair-data-assessment-tool) and FAIR Data Points |
 | Netherlands | [CLARIAH](https://clariah.nl) | NWO grant number: 184.033.101 | CLARIAH as a service |
@@ -80,6 +81,12 @@ After Docker is installed you can run BeFAIR:
 ```
 git clone https://github.com/CoronaWhy/befair
 cd befair
+cd distributives
+```
+
+You'll find a lot of distributives for the different research communities there. Choose some of the, for example, "fair", and start with command:
+```
+cd fair
 make up
 ```
 

@@ -1,0 +1,38 @@
+version: '3.7'
+services:
+    fdpclient:
+      image: fairdata/fairdatapoint-client
+      ports:
+        - "8091:80"
+      environment:
+        - FDP_HOST=fdp
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.fdpclient.rule=Host(`fdpclient.${traefikhost}`)"
+        - "traefik.http.routers.fdpclient.tls=true"
+        - "traefik.http.routers.fdpclient.tls.certresolver=myresolver"
+      volumes:
+        - ./fdp.config:/fdp/application.yml
+
+    fdp:
+      image: fairdata/fairdatapoint
+      ports:
+        - "8092:80"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.fdp.rule=Host(`fdp.${traefikhost}`)"
+        - "traefik.http.routers.fdp.tls=true"
+        - "traefik.http.routers.fdp.tls.certresolver=myresolver"  
+      volumes:
+        - ./fdp.config:/fdp/application.yml
+
+    mongo:
+        image: mongo:4.0.12
+
+    blazegraph:
+        image: metaphacts/blazegraph-basic:2.2.0-20160908.003514-6
+        ports:
+            - 8093:8080
+        volumes:
+            - ./var/blazegraph:/blazegraph-data
+
