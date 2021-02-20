@@ -36,7 +36,13 @@ check-all:
 			exit 1;                                               \
 		fi;                                                       \
         $(MAKE) menuconfig;                                       \
-    fi
+	else                                                          \
+		if [ ! -e $(DISTRO_ACTIVE_DIR) ]; then                    \
+			echo "$(DISTRO_ACTIVE_DIR) is brocken symbolic link."    \
+                "It's should be link to active distributive setup" >&2; \
+			exit 1;                                               \
+		fi; \
+    fi; \
 	[ -L $(DISTRO_ACTIVE_DIR) ] && $(MAKE) -C $(DISTRO_ACTIVE_DIR) $@
 .PHONY: %
 
