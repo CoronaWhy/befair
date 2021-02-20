@@ -64,24 +64,43 @@ distro_is_valid() {
     DIR="$1"
     MSG_TYPE="${2:-err}"
 
-    if ! ls $DIR/*.yaml 2> /dev/null >&2; then
-        msg $MSG_TYPE "There is no $DIR/*.yaml"
-        return 1
+    if [ "$MSG_TYPE" != "warn" -a "$MSG_TYPE" != "short" ]; then
+        CHECK_EXIT="eval return 1;"
+    else
+        CHECK_EXIT="eval CHECK_EXIT_STATUS=1"
     fi
 
-    if ! ls $DIR/*.yaml | grep -qv '\.override.yaml' > /dev/null; then
+    if [ "$MSG_TYPE" = "short" ]; then
+        MSG_TYPE=null
+        set_short_msg() {
+            printf " ] [ ${C_MSG_ERR}$1${C_NONE}"
+        }
+    else
+        set_short_msg() {
+            true
+        }
+    fi
+
+    if ! ls $DIR/*.yaml 2> /dev/null 1>&2; then
+        msg $MSG_TYPE "There is no $DIR/*.yaml"
+        set_short_msg "no *.yaml"
+        $CHECK_EXIT
+    elif ! ls $DIR/*.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null; then
         msg $MSG_TYPE "There is only $DIR/*.override.yaml. Need at least one not override.yaml"
-        return 1
+        set_short_msg "override.yaml only"
+        $CHECK_EXIT
     fi
 
     if [ ! -e $DIR/.env ]; then
         msg $MSG_TYPE "There is no $DIR/.env"
-        return 1
+        set_short_msg "no .env"
+        $CHECK_EXIT
     fi
 
     if ls $DIR/*.yml 2> /dev/null >&2; then
-        msg $MSG_TYPE "There is no $DIR/*.yml files. Please rename or move out them from distributive"
-        return 1
+        msg $MSG_TYPE "There is $DIR/*.yml files. Please rename or move out them from distributive"
+        set_short_msg "exist *.yml(!)"
+        $CHECK_EXIT
     fi
 
     for YAML in $DIR/*.yaml; do
@@ -96,10 +115,39 @@ distro_is_valid() {
 
     if [ -n "$TEST_FAIL" ]; then
         unset TEST_FAIL
-        return 1
+        unset FILE
+        $CHECK_EXIT
     fi
-    # TODO: check is link distributives/localhost/Makefile to ../../mk/distro-makefile.mk
-    # if not, check if there is string 'include ../../mk/distro-makefile.mk'
+
+    if [ -L $DIR/Makefile ]; then
+        case "$(readlink $DIR/Makefile)" in
+            */mk/distro-makefile.mk) ;;
+            *)
+                msg $MSG_TYPE "Link $DIR/Makefile point to file $(readlink $DIR/Makefile), but must be to mk/distro-makefile.mk"
+                set_short_msg "wrong Makefile"
+                $CHECK_EXIT
+            ;;
+        esac
+    fi
+
+    if [ ! -e $DIR/Makefile ]; then
+        msg $MSG_TYPE "There is no $DIR/Makefile"
+        set_short_msg "no Makefile"
+        $CHECK_EXIT
+    else
+        if [ ! -L $DIR/Makefile ] && ! grep -q 'include .*/mk/distro-makefile.mk' $DIR/Makefile; then
+            msg $MSG_TYPE "File $DIR/Makefile not include mk/distro-makefile.mk"
+            set_short_msg "wrong Makefile"
+            $CHECK_EXIT
+        fi
+    fi
+
+    return $CHECK_EXIT_STATUS
+}
+
+distro_make_active() {
+    ln -fns $1 $DISTRO_ACTIVE_LINK
+    msg info "Distributive \"$(basename $1)\" active now"
 }
 
 get_distros_list() {
@@ -226,7 +274,7 @@ menu_unset_variables() {
 }
 
 ask_yes() {
-    while printf "$1[yes/no]: "
+    while printf "$1 [yes/no]: "
           read ANS
     do
         case $ANS in
@@ -257,9 +305,7 @@ get_distro_status() {
         printf "services: $SERVICES"
     fi
 
-    if [ ! -e "$1"/.env ]; then
-        printf " ${C_MSG_ERR}No .env!${C_NONE}"
-    fi
+    distro_is_valid $1 short
 
     unset SERVICES
 }
@@ -378,16 +424,16 @@ menu_show_prompt() {
     case $MENU_MODE in
         create-distro)
             COPY_DISTRO="$(get_distros_list $DISTROS_DIR)"
-            gen_menu_items "Available distributives. Choose distributive to make ${C_MSG_TIPS}copy${C_NONE} of it:\n" \
+            gen_menu_items "Available distributives. Choose distributive to make ${C_MSG_TIPS}copy${C_NONE}:\n" \
                            COPY_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
-            PROMPT="${PROMPT} ${C_WHITE}m) Make new distributive\n"
-            PROMPT="${PROMPT} ${C_WHITE}R) Remove distributive\n"
+            PROMPT="${PROMPT} ${C_WHITE}m)${C_NONE} Make new distributive\n"
+            PROMPT="${PROMPT} ${C_WHITE}R)${C_NONE} Remove distributive\n"
         ;;
 
         remove-distro)
             REMOVE_DISTRO="$(get_distros_list $DISTROS_DIR)"
-            gen_menu_items "Available distributives. Choose distributive to ${C_MSG_WARN}remove${C_NONE} it:\n" \
+            gen_menu_items "Available distributives. Choose distributive to ${C_MSG_WARN}remove${C_NONE}:\n" \
                            REMOVE_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
         ;;
@@ -410,16 +456,16 @@ menu_show_prompt() {
 
                 PROMPT="${PROMPT}$MENU_HR_C\n\n"
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
-                gen_menu_items "Available distributives. Choose distributive to make it active:\n" \
+                gen_menu_items "Available distributives. Choose distributive to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
                                "get_distro_status $DISTROS_DIR/"
             fi
         ;;
 
         *)
-            if [ ! -L $DISTRO_ACTIVE_LINK ]; then
+            if [ -z "$MENU_MODE" -a ! -L $DISTRO_ACTIVE_LINK ]; then
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
-                gen_menu_items "Available distributives. Choose distributive to make it active:\n" \
+                gen_menu_items "Available distributives. Choose distributive to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
                                "get_distro_status $DISTROS_DIR/"
             fi
@@ -459,8 +505,7 @@ menu_numeric_index_action() {
         fi
         case $TYPE in
             ACTIVATE_DISTRO)
-                ln -fns $DISTROS_DIR/$ITEM $DISTRO_ACTIVE_LINK
-                msg info "Distributive \"$ITEM\" active now"
+                distro_make_active $DISTROS_DIR/$ITEM
             ;;
 
             SERVICES_ACTIVE)
@@ -488,7 +533,7 @@ menu_numeric_index_action() {
             ;;
 
             REMOVE_DISTRO)
-                if ask_yes "Do you really want REMOVE \"$ITEM\"? "; then
+                if ask_yes "Do you really want REMOVE \"$ITEM\"?"; then
                     if [ -L $DISTRO_ACTIVE_LINK ]; then
                         DISTRO_CURRENT=$(basename $(readlink $DISTRO_ACTIVE_LINK))
                         if [ "$DISTRO_CURRENT" = "$ITEM" ]; then
@@ -533,6 +578,13 @@ menu_main() {
                     ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
                     # TODO: create .env file
                     msg info "Distributive \"$DISTRO_NEW\" created"
+                    if [ -L $DISTRO_ACTIVE_LINK ]; then
+                        if ask_yes "Do you want make new distributive $DISTRO_NEW active?"; then
+                            distro_make_active $DISTROS_DIR/$DISTRO_NEW
+                        fi
+                    else
+                        distro_make_active $DISTROS_DIR/$DISTRO_NEW
+                    fi
                 fi
             ;;
             r)
