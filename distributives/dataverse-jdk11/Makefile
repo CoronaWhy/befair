@@ -1,1 +1,1 @@
-../analytics/Makefile
+../../mk/distro-makefile.mk

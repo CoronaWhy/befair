@@ -1,1 +1,1 @@
-../../mk/deploys-template.mk
+../../mk/distro-makefile.mk

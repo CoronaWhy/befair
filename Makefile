@@ -1,5 +1,7 @@
 include mk/helpers.mk
 
+DISTRO_ACTIVE_DIR=distributive-active
+
 # help: show all targets with tag 'help'
 help:
 	@$(call generate-help,$(MAKEFILE_LIST) mk/common.mk)
@@ -15,19 +17,21 @@ menuconfig-docker:
 	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
 .PHONY: menuconfig-docker
 
-# help: check deployment consistency
-check:
-	@echo FIXME: not yet implemented
-.PHONY: check
+# help: check all distributives consistency
+check-all:
+	@for DIR in distributives/*; do $(MAKE) -C $$DIR check; done
+.PHONY: check-all
 
 %:
-	@if [ ! -L deploy-active ]; then                              \
-		if [ -e deploy-active ]; then                             \
-			echo "deploy-active is not a symbolic link."          \
-                "It's should be link to active deploy setup" >&2; \
+	@if [ ! -L $(DISTRO_ACTIVE_DIR) ]; then                        \
+		if [ -e $(DISTRO_ACTIVE_DIR) ]; then                       \
+			echo "$(DISTRO_ACTIVE_DIR) is not a symbolic link."    \
+                "It's should be link to active distributive setup" >&2; \
 			exit 1;                                               \
 		fi;                                                       \
         $(MAKE) menuconfig;                                       \
     fi
-	$(MAKE) -C deploy-active $@
+	[ -L $(DISTRO_ACTIVE_DIR) ] && $(MAKE) -C $(DISTRO_ACTIVE_DIR) $@
 .PHONY: %
+
+# vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix

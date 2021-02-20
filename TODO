@@ -3,7 +3,7 @@
     + check yaml syntax
     + .env is present
  - [menuconfig] user can use command 'e) export' even if menu for it not showed becouse
-                of error in active deployment. need to fix
+                of error in active distributive. need to fix
  - [menuconfig] implement export docker-compose.override.yaml from *.override.yaml files
  - [menuconfig] handle .env files in
 
@@ -12,25 +12,25 @@
  - make menuconfig from distributive directory and exports/(?)
 
  + services-avalable/*.mk
- - allow run several deployments in same host
+ - allow run several distributives in same host
    - fix tcp ports intersection
  - build custom docker images from images/
  + make config
- + make new-deployment
+ + make new-distro
  - add to HACKING.md example how to make new serivce using whoami service
- + implement consistency of deployment checking (see check_consistency() in bin/menuconfig)
+ + implement consistency of distributive checking (see check_consistency() in bin/menuconfig)
  - track service dependence from other services
- - add possibility remove (backup?) deployments
+ + add possibility remove (backup?) distributives
 
- + [menuconfig] add/remove service to current deployment from services-available/
+ + [menuconfig] add/remove service to current distributive from services-available/
     + symbolic link default yaml
     - copy of example env/config/secrets files
 
  - create new service from skeleton typical compose service ..
-    + create new deployment by copying existent
-    + create new deployment from scratch
+    + create new distributive by copying existent
+    + create new distributive from scratch
       - use some skeleton project or it(?)
 
- - switch between default service and deployment specific and/or customized service
+ - switch between default service and distributive specific and/or customized service
     - backup/remove service customizations 
 
