@@ -22,7 +22,7 @@ tgz:
 OK   := $(shell printf "\"\e[1;32mok\e[0m\"")
 FAIL := $(shell printf "\"\e[1;31mfail\e[0m\"")
 
-# help: checking consistency of deploy
+# help: checking consistency of distributive
 check:
 	@printf "Checking 'docker-compose config -q' syntax - "
 	@useremail=dummy traefikhost=dummy docker-compose config -q && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
@@ -35,7 +35,7 @@ check:
 		|| { echo $(FAIL)'. Need at least one not override.yaml'; $(CHECK_EXIT) }
 
 	@printf 'Checking not existing *.yml files - '
-	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from deployment'; $(CHECK_EXIT) } || echo $(OK)
+	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from distributive'; $(CHECK_EXIT) } || echo $(OK)
 
 .PHONY: check
 
@@ -68,3 +68,4 @@ volume-prune-force:
 reset: down volume-prune
 .PHONY: reset
 
+# vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix

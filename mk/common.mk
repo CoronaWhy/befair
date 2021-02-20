@@ -1,9 +1,9 @@
-DEPLOY_DIR=$(dir $(filter %common.mk,$(MAKEFILE_LIST)))
+DISTRO_DIR=$(dir $(filter %common.mk,$(MAKEFILE_LIST)))
 
-# Run all unknown target in deploy-active/ directory
-ifeq ($(DEPLOY_DIR),./)
-#$(guile (chdir "deploy-active"))
-$(chdir "deploy-active")
+# Run all unknown target in distributive-active/ directory
+ifeq ($(DISTRO_DIR),./)
+#$(guile (chdir "distributive-active"))
+$(chdir "distributive-active")
 .DEFAULT_GOAL := all
 .PHONY: ${MAKECMDGOALS}
 $(filter-out all,${MAKECMDGOALS}) all: .forward-all ; @:
@@ -18,7 +18,7 @@ endif
 # add default enviroment file if available
 -include .env
 
-# find all *.yaml file in deploy directory and set COMPOSE_FILE for docker-compose
+# find all *.yaml file in distributive directory and set COMPOSE_FILE for docker-compose
 export COMPOSE_FILE=$(call join-with,:,$(wildcard *.yaml))
 
 # FIXME: find a proper way to find dataverse container name
@@ -38,10 +38,10 @@ help:
 
 var-show-all:
 	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
-	echo $(DEPLOY_DIR)
+	echo $(DISTRO_DIR)
 
 # Find all *.mk files which corrspond to *.yaml files.
-# For example if solr.yaml exist in deploy directory, search for
+# For example if solr.yaml exist in distributive directory, search for
 # services-available/solr.yaml and include it
 $(foreach mk,$(addsuffix .mk,$(basename $(wildcard *.yaml))), \
     $(eval SERVICE_INCLUDE_MK += $(call search-parent-mk,services-available/$(mk))) \
@@ -53,7 +53,7 @@ $(foreach mk,$(SERVICE_INCLUDE_MK), \
 OK   := $(shell printf "\"\e[1;32mok\e[0m\"")
 FAIL := $(shell printf "\"\e[1;31mfail\e[0m\"")
 
-# help: checking consistency of deploy
+# help: checking consistency of distributive
 check:
 	@printf "Checking 'docker-compose config -q' syntax - "
 	@useremail=dummy traefikhost=dummy docker-compose config -q && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
@@ -66,7 +66,7 @@ check:
 		|| { echo $(FAIL)'. Need at least one not override.yaml'; $(CHECK_EXIT) }
 
 	@printf 'Checking not existing *.yml files - '
-	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from deployment'; $(CHECK_EXIT) } || echo $(OK)
+	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from distributive'; $(CHECK_EXIT) } || echo $(OK)
 
 	@printf 'Checking links point to files with same name - '
 	@for YAML in *.yaml; do \
@@ -104,7 +104,7 @@ airflow:
 .PHONY: airflow
 
 superset:
-        # clone latest version ready for deployment
+        # clone latest version ready for distributive
 	git clone http://github.com/apache/superset
 .PHONY: superset
 
@@ -120,7 +120,7 @@ up-manual:: COMPOSE_FILE=$(COMPOSE_FILE):/tmp/entrypoint.override.yaml
 up-manual::
 	@echo '/bin/sh -c '\''while :; do echo "============= im dataverse ==========="; set; set > /tmp/env; sleep 30; done'\'' > /tmp/entrypoint.override.yaml
 	docker-compose up -d
-
+	# ' just to fix vim highlight
 
 # help: 'docker-compose down'
 down:
@@ -137,12 +137,12 @@ shell devshell:
 	docker-compose exec $(DATAVERSE_CONTAINER_NAME) bash
 .PHONY: shell devshell
 
-# help: 'docker volume prune' - cleanup data for current deployment
+# help: 'docker volume prune' - cleanup data for current distributive
 volume-prune:
 	docker volume prune --filter 'name=$(COMPOSE_PROJECT_NAME)'
 .PHONY: volume-prune
 
-# help: 'docker volume -y prune' - cleanup data for current deployment without prompt
+# help: 'docker volume -y prune' - cleanup data for current distributive without prompt
 volume-prune-force:
 	docker volume -y prune --filter 'name=$(COMPOSE_PROJECT_NAME)'
 .PHONY: volume-prune-force
@@ -151,20 +151,22 @@ volume-prune-force:
 reset: down volume-prune
 .PHONY: reset
 
-# help: generate enviroment variables for current deployment. Can be user in shell as: eval \$(make env)
+# help: generate enviroment variables for current distributive. Can be user in shell as: eval \$(make env)
 env: .env
 	@echo export COMPOSE_FILE=$(COMPOSE_FILE)
 	@cat .env | sed '/^ *$$\|^#/d;s/^[^#]/export &/'
 	@#env --ignore-environment sh -c "set -x;eval $$(/bin/cat .env); echo 123; export -p"
 .PHONY: env
 
-# help: bash with enviroment variables for current deployment to allow operate docker-compose directly
+# help: bash with enviroment variables for current distributive to allow operate docker-compose directly
 bash: .env
 	@. ./.env; \
-		printf "\nbash with enviroment variables for current deployment. Try to run 'docker-compose config' for example\n\n"; \
+		printf "\nbash with enviroment variables for current distributive. Try to run 'docker-compose config' for example\n\n"; \
 		bash -li || true
 .PHONY: bash
 
 .env:
 	@echo "You need to create .env file"
-#endif # ($(DEPLOY_DIR),./)
+#endif # ($(DISTRO_DIR),./)
+
+# vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix

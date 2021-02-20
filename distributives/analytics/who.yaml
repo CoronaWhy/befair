@@ -1,0 +1,10 @@
+version: "3.7"
+services:
+  whoami:
+    image: containous/whoami
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami_insecure.rule=Host(`whoami.${traefikhost}`)"
+      - "traefik.http.routers.whoami_insecure.middlewares=file.https-redirect"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.${traefikhost}`)"
+      - "traefik.http.routers.whoami.tls=true"

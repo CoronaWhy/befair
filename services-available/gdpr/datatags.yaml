@@ -1,0 +1,12 @@
+version: '3.7'
+services:
+    datatags:
+      image: coronawhy/datatags:latest
+      labels:
+        - "traefik.enable=true"
+          # - "traefik.http.routers.datatags.entrypoints=web"
+        - "traefik.http.routers.datatags.rule=Host(`datatags.${traefikhost}`)"
+        - "traefik.http.services.datatags.loadbalancer.server.port=8888"
+        - "traefik.http.routers.datatags.tls=true"
+        - "traefik.http.routers.datatags.tls.certresolver=myresolver"  
+

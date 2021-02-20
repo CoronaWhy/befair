@@ -1,4 +1,5 @@
-deploys/*/var/
+distributives/*/var/
+distributives/*/*/var/
 
 # vim swap
 [._]*.s[a-v][a-z]
