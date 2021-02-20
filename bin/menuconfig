@@ -57,6 +57,9 @@ check_active() {
             die "$DISTRO_ACTIVE_LINK is not a symbolic link." \
                 "It's should be link to active distributive setup"
         fi
+    elif [ ! -e $DISTRO_ACTIVE_LINK ]; then
+        die "$DISTRO_ACTIVE_LINK is brocken symbolic link." \
+        "It's should be link to active distributive setup"
     fi
 }
 
