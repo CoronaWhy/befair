@@ -168,3 +168,5 @@ bash: .env
 .env:
 	@echo "You need to create .env file"
 #endif # ($(DISTRO_DIR),./)
+
+# vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix

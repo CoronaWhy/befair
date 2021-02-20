@@ -19,7 +19,13 @@ menuconfig-docker:
 
 # help: check all distributives consistency
 check-all:
-	@for DIR in distributives/*; do $(MAKE) -C $$DIR check; done
+	@for DIR in distributives/*; do               \
+		printf "=============================";   \
+		printf " Checking %-20s " $$DIR;          \
+		printf "=============================\n"; \
+		$(MAKE) -C $$DIR check;                   \
+		echo;                                     \
+	done
 .PHONY: check-all
 
 %:
