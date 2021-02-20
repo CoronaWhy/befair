@@ -62,7 +62,7 @@ check:
 	@[ -e .env ] && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
 
 	@printf 'Checking existing not only .override.yaml file - '
-	@ls *.yaml | grep -qv '\.override.yaml' > /dev/null && echo $(OK) \
+	@ls *.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null && echo $(OK) \
 		|| { echo $(FAIL)'. Need at least one not override.yaml'; $(CHECK_EXIT) }
 
 	@printf 'Checking not existing *.yml files - '
@@ -80,6 +80,26 @@ check:
         fi; \
     done; \
 	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
+
+	@printf 'Checking Makefile is valid - '
+	@if [ -L Makefile ]; then \
+	    case "$$(readlink Makefile)" in \
+	        */mk/distro-makefile.mk) ;; \
+	        *) printf $(FAIL)"\nLink Makefile point to file $$(readlink Makefile), but must be to mk/distro-makefile.mk\n"; \
+				TEST_FAIL=1 ;; \
+	    esac; \
+	fi; \
+	if [ ! -e Makefile ]; then \
+	    printf $(FAIL)"\nThere is no Makefile\n"; \
+		TEST_FAIL=1; \
+	else \
+	    if [ ! -L Makefile ] && ! grep -q 'include .*/mk/distro-makefile.mk' Makefile; then \
+	        printf $(FAIL)"\nFile Makefile not include mk/distro-makefile.mk\n"; \
+			TEST_FAIL=1; \
+	    fi; \
+	fi; \
+	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
+
 
 .PHONY: check
 

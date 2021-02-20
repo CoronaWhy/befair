@@ -8,15 +8,39 @@ DISTRO_ACTIVE_LINK=distributive-active
 SERVICES_AVAILABLE_DIR=services-available
 STANDALONE_DIR=exports
 
-MENU_HR="==================================================================================="
-
 ################################
+
+# Colors
+C_NONE="\033[0m"     C_WHITE="\033[1;37m"
+C_RED="\033[0;31m"   C_LRED="\033[1;31m"
+C_GRN="\033[0;32m"   C_LGRN="\033[1;32m"
+C_YEL="\033[0;33m"   C_LYEL="\033[1;33m"
+C_MAG="\033[0;35m"   C_LMAG="\033[1;35m"
+C_LBLUE="\033[1;36m" C_CYAN="\033[0;36m"
+
+C_MENU_KEY="$C_WHITE"
+C_MENU_TITLE="$C_WHITE"
+
+C_MSG_WARN="$C_LMAG"
+C_MSG_ERR="$C_LRED"
+C_MSG_NORM=""
+C_MSG_INFO="$C_LGRN"
+C_MSG_TIPS="$C_LYEL"
+C_MSG_HR="$C_CYAN"
+
+MENU_HR="==================================================================================="
+MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
+
 msg() {
     TYPE=$1
     shift
     case "$TYPE" in
-        warn) printf "WARNING: %s\n" "$*" >&2 ;;
-        err)  printf "ERROR: %s\n" "$*" >&2 ;;
+        err)  printf "$C_MSG_ERR%s$C_NONE\n" "$*" >&2 ;;
+        warn) printf "$C_MSG_WARN%s$C_NONE\n" "$*" >&2 ;;
+        norm) printf "$C_MSG_NORM%s$C_NONE\n" "$*" >&2 ;;
+        info) printf "$C_MSG_INFO%s$C_NONE\n" "$*" >&2 ;;
+        tips) printf "$C_LYEL%s$C_NONE\n" "$*" >&2 ;;
+        hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" >&2 ;;
         null) ;;
         *)    printf "%s\n" "$*" ;;
     esac
@@ -40,24 +64,43 @@ distro_is_valid() {
     DIR="$1"
     MSG_TYPE="${2:-err}"
 
-    if ! ls $DIR/*.yaml 2> /dev/null >&2; then
-        msg $MSG_TYPE "There is no $DIR/*.yaml"
-        return 1
+    if [ "$MSG_TYPE" != "warn" -a "$MSG_TYPE" != "short" ]; then
+        CHECK_EXIT="eval return 1;"
+    else
+        CHECK_EXIT="eval CHECK_EXIT_STATUS=1"
     fi
 
-    if ! ls $DIR/*.yaml | grep -qv '\.override.yaml' > /dev/null; then
+    if [ "$MSG_TYPE" = "short" ]; then
+        MSG_TYPE=null
+        set_short_msg() {
+            printf " ] [ ${C_MSG_ERR}$1${C_NONE}"
+        }
+    else
+        set_short_msg() {
+            true
+        }
+    fi
+
+    if ! ls $DIR/*.yaml 2> /dev/null 1>&2; then
+        msg $MSG_TYPE "There is no $DIR/*.yaml"
+        set_short_msg "no *.yaml"
+        $CHECK_EXIT
+    elif ! ls $DIR/*.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null; then
         msg $MSG_TYPE "There is only $DIR/*.override.yaml. Need at least one not override.yaml"
-        return 1
+        set_short_msg "override.yaml only"
+        $CHECK_EXIT
     fi
 
     if [ ! -e $DIR/.env ]; then
         msg $MSG_TYPE "There is no $DIR/.env"
-        return 1
+        set_short_msg "no .env"
+        $CHECK_EXIT
     fi
 
     if ls $DIR/*.yml 2> /dev/null >&2; then
-        msg $MSG_TYPE "There is no $DIR/*.yml files. Please rename or move out them from distributive"
-        return 1
+        msg $MSG_TYPE "There is $DIR/*.yml files. Please rename or move out them from distributive"
+        set_short_msg "exist *.yml(!)"
+        $CHECK_EXIT
     fi
 
     for YAML in $DIR/*.yaml; do
@@ -72,10 +115,39 @@ distro_is_valid() {
 
     if [ -n "$TEST_FAIL" ]; then
         unset TEST_FAIL
-        return 1
+        unset FILE
+        $CHECK_EXIT
     fi
-    # TODO: check is link distributives/localhost/Makefile to ../../mk/distro-makefile.mk
-    # if not, check if there is string 'include ../../mk/distro-makefile.mk'
+
+    if [ -L $DIR/Makefile ]; then
+        case "$(readlink $DIR/Makefile)" in
+            */mk/distro-makefile.mk) ;;
+            *)
+                msg $MSG_TYPE "Link $DIR/Makefile point to file $(readlink $DIR/Makefile), but must be to mk/distro-makefile.mk"
+                set_short_msg "wrong Makefile"
+                $CHECK_EXIT
+            ;;
+        esac
+    fi
+
+    if [ ! -e $DIR/Makefile ]; then
+        msg $MSG_TYPE "There is no $DIR/Makefile"
+        set_short_msg "no Makefile"
+        $CHECK_EXIT
+    else
+        if [ ! -L $DIR/Makefile ] && ! grep -q 'include .*/mk/distro-makefile.mk' $DIR/Makefile; then
+            msg $MSG_TYPE "File $DIR/Makefile not include mk/distro-makefile.mk"
+            set_short_msg "wrong Makefile"
+            $CHECK_EXIT
+        fi
+    fi
+
+    return $CHECK_EXIT_STATUS
+}
+
+distro_make_active() {
+    ln -fns $1 $DISTRO_ACTIVE_LINK
+    msg info "Distributive \"$(basename $1)\" active now"
 }
 
 get_distros_list() {
@@ -84,13 +156,28 @@ get_distros_list() {
 
 get_services_active_list() {
     unset SERVICES
+    SERVICE_DIR="$1"
+    IS_SHORT_LIST="$2"
 
-    ls "$1"/*.yaml 2> /dev/null 1>&2 || return
+    ls "$SERVICE_DIR"/*.yaml 2> /dev/null 1>&2 || return
 
-    SERVICE_DIR=$(readlink $1)
-    SERVICE_DIR=${SERVICE_DIR#*/} # remove prefix with $DISTROS_DIR
+    if [ -L "$SERVICE_DIR" ]; then
+        SERVICE_DIR=$(readlink $1)
+    fi
+
     for SERVICE in "$1"/*.yaml; do
-        SERVICE=$SERVICE_DIR/$(basename $SERVICE)
+        if [ -n "$IS_SHORT_LIST" ]; then
+            SNAME="$(basename $SERVICE .yaml)"
+            if [ -L $SERVICE -a ! -e $SERVICE ]; then
+                SERVICE="${C_MSG_ERR}$SNAME${C_NONE}"
+            else
+                SERVICE="$SNAME"
+            fi
+        else
+            # remove prefix with $DISTROS_DIR
+            SERVICE=${SERVICE_DIR#*/}/$(basename $SERVICE)
+        fi
+
         SERVICES="$SERVICES $SERVICE"
     done
 
@@ -119,7 +206,7 @@ get_services_available_list() {
 # 4. optional $3 is name of fuction to generate additional info for item
 gen_menu_items() {
 
-    PROMPT="${PROMPT}$1"
+    PROMPT="${PROMPT}${C_MENU_TITLE}$1${C_NONE}"
     VAR_NAME="$2"
     FUNC_ADDITIONAL_INFO="$3"
 
@@ -135,7 +222,7 @@ gen_menu_items() {
             eval ADDITIONAL_INFO="\"\$($FUNC_ADDITIONAL_INFO$ITEM)\""
         fi
 
-        PROMPT="${PROMPT}$(printf "%2d) %-35s [ %s ]" ${MENU_INDEX} "$ITEM" "$ADDITIONAL_INFO")\n"
+        PROMPT="${PROMPT}$(printf "${C_MENU_KEY}%2d${C_NONE}) %-35s [ %s ]" ${MENU_INDEX} "$ITEM" "$ADDITIONAL_INFO")\n"
         eval MENU_ITEM_${VAR_NAME}_$MENU_INDEX="\$ITEM"
     done
     PROMPT="${PROMPT}\n"
@@ -187,7 +274,7 @@ menu_unset_variables() {
 }
 
 ask_yes() {
-    while printf "$1[yes/no]: "
+    while printf "$1 [yes/no]: "
           read ANS
     do
         case $ANS in
@@ -202,7 +289,7 @@ get_active_service_status() {
     YAML=$(basename $1)
     if [ -L $DISTRO_ACTIVE_LINK/$YAML ]; then
         YAML="$(readlink $DISTRO_ACTIVE_LINK/$YAML | sed 's,\(\.\./\)*,,')"
-        [ ! -e $YAML ] && YAML="$YAML (not exist!)"
+        [ ! -e $YAML ] && YAML="$YAML ${C_MSG_ERR}Not exist!${C_NONE}"
         echo "is link to $YAML"
     else
         echo "is file $(readlink $DISTRO_ACTIVE_LINK)/$YAML"
@@ -212,14 +299,14 @@ get_active_service_status() {
 
 get_distro_status() {
 
-    if [ ! -e "$1"/.env ]; then
-        echo 'No .env(!) '
+    SERVICES=$(get_services_active_list $1 short)
+
+    if [ -n "$SERVICES" ]; then
+        printf "services: $SERVICES"
     fi
 
-    SERVICES=$(get_services_active_list $1)
-    if [ -n "$SERVICES" ]; then
-        echo services: $SERVICES
-    fi
+    distro_is_valid $1 short
+
     unset SERVICES
 }
 
@@ -277,7 +364,7 @@ export_standalone_distributive() {
 
     cp mk/standalone-template.mk $DISTRO_STANDALONE_DIR/Makefile
     if ! useremail=dummy traefikhost=dummy COMPOSE_FILE=$DISTRO_STANDALONE_DIR/docker-compose.yaml docker-compose config -q; then
-        msg norm "$MENU_HR"
+        msg hr    "$MENU_HR"
         msg err  "Export to $DISTRO_STANDALONE_DIR/docker-compose.yaml fail"
         msg norm ""
         msg tips "Checkout this generated docker-compose.yaml for errors:"
@@ -300,19 +387,19 @@ export_standalone_distributive() {
 
 ############################################################################################
 menu_show_active_distributive() {
-    msg norm $MENU_HR
+    msg hr $MENU_HR
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
         msg warn "No active distributive"
-        msg norm $MENU_HR
+        msg hr $MENU_HR
         return
     fi
 
     DISTRO_ACTIVE=$(basename $(readlink $DISTRO_ACTIVE_LINK))
     if ! distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE warn; then
-        msg norm $MENU_HR
+        msg hr $MENU_HR
     fi
 
-    echo -n "Active distributive is \"$DISTRO_ACTIVE\". "
+    printf "${C_MENU_TITLE}Active distributive is \"$DISTRO_ACTIVE\".${C_NONE} "
 
     SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
     if [ -n "$SERVICES_ACTIVE" ]; then
@@ -337,26 +424,26 @@ menu_show_prompt() {
     case $MENU_MODE in
         create-distro)
             COPY_DISTRO="$(get_distros_list $DISTROS_DIR)"
-            gen_menu_items "Available distributives. Choose distributive to make COPY of it:\n" \
+            gen_menu_items "Available distributives. Choose distributive to make ${C_MSG_TIPS}copy${C_NONE}:\n" \
                            COPY_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
-            PROMPT="${PROMPT} m) Make new distributive\n"
-            PROMPT="${PROMPT} R) Remove distributive\n"
+            PROMPT="${PROMPT} ${C_WHITE}m)${C_NONE} Make new distributive\n"
+            PROMPT="${PROMPT} ${C_WHITE}R)${C_NONE} Remove distributive\n"
         ;;
 
         remove-distro)
             REMOVE_DISTRO="$(get_distros_list $DISTROS_DIR)"
-            gen_menu_items "Available distributives. Choose distributive to REMOVE it:\n" \
+            gen_menu_items "Available distributives. Choose distributive to ${C_MSG_WARN}remove${C_NONE}:\n" \
                            REMOVE_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
         ;;
     esac
 
     if [ -L $DISTRO_ACTIVE_LINK ]; then
-        PROMPT="${PROMPT} d) Disable current distributive\n"
-        PROMPT="${PROMPT} r) Rename current distributive\n"
+        PROMPT="${PROMPT} ${C_WHITE}d)${C_NONE} Disable current distributive\n"
+        PROMPT="${PROMPT} ${C_WHITE}r)${C_NONE} Rename current distributive\n"
         if distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE null; then
-            PROMPT="${PROMPT}\n e) Export from current distributive to standalone distributive docker-compose.yaml\n"
+            PROMPT="${PROMPT}\n ${C_WHITE}e$C_NONE) Export from current distributive to standalone distributive docker-compose.yaml\n"
         fi
         PROMPT="${PROMPT}\n"
     fi
@@ -367,41 +454,42 @@ menu_show_prompt() {
             if [ -L $DISTRO_ACTIVE_LINK ]; then
                 ACTIVATE_DISTRO=$(get_distros_list $DISTROS_DIR)
 
-                PROMPT="${PROMPT}$MENU_HR\n\n"
+                PROMPT="${PROMPT}$MENU_HR_C\n\n"
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
-                gen_menu_items "Available distributives. Choose distributive to make it active:\n" \
+                gen_menu_items "Available distributives. Choose distributive to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
                                "get_distro_status $DISTROS_DIR/"
             fi
         ;;
 
         *)
-            if [ ! -L $DISTRO_ACTIVE_LINK ]; then
+            if [ -z "$MENU_MODE" -a ! -L $DISTRO_ACTIVE_LINK ]; then
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
-                gen_menu_items "Available distributives. Choose distributive to make it active:\n" \
+                gen_menu_items "Available distributives. Choose distributive to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
                                "get_distro_status $DISTROS_DIR/"
             fi
         ;;
     esac
     if [ -L $DISTRO_ACTIVE_LINK -a "$MENU_MODE" != "choose-distro-available" ]; then
-        PROMPT="${PROMPT}$MENU_HR\n\n"
-        PROMPT="${PROMPT} c) Choose available distributive         [ mode ]\n"
+        PROMPT="${PROMPT}$MENU_HR_C\n\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}c)${C_NONE} Choose available distributive       [ mode ]\n\n"
     fi
 
 
     ############ distributives modes list ##############
-    PROMPT="${PROMPT}\n$MENU_HR\n\n"
+    PROMPT="${PROMPT}$MENU_HR_C\n\n"
     if [ "$MENU_MODE" != "create-distro" ]; then
-        PROMPT="${PROMPT} C) Create new distributive               [ mode ]\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}C)${C_NONE} Create new distributive             [ mode ]\n"
     fi
 
     if [ "$MENU_MODE" != "remove-distro" ]; then
-        PROMPT="${PROMPT} R) Remove distributive                   [ mode ]\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}R)${C_NONE} Remove distributive                 [ mode ]\n"
     fi
 
-    PROMPT="${PROMPT}\n Enter) Refresh screen or quit from mode\n"
-    PROMPT="${PROMPT} q) Quit\n\nChoose> "
+    PROMPT="${PROMPT}\n ${C_MENU_KEY}q)${C_NONE} Quit\n"
+    PROMPT="${PROMPT} ${C_MENU_KEY}Enter)${C_NONE} Refresh screen or quit from mode\n"
+    PROMPT="${PROMPT}${C_MENU_KEY}Choose>${C_NONE} "
     unset MENU_MODE
 
     printf "$PROMPT"
@@ -417,8 +505,7 @@ menu_numeric_index_action() {
         fi
         case $TYPE in
             ACTIVATE_DISTRO)
-                ln -fns $DISTROS_DIR/$ITEM $DISTRO_ACTIVE_LINK
-                msg info "Distributive \"$ITEM\" active now"
+                distro_make_active $DISTROS_DIR/$ITEM
             ;;
 
             SERVICES_ACTIVE)
@@ -446,7 +533,7 @@ menu_numeric_index_action() {
             ;;
 
             REMOVE_DISTRO)
-                if ask_yes "Do you really want REMOVE \"$ITEM\"? "; then
+                if ask_yes "Do you really want REMOVE \"$ITEM\"?"; then
                     if [ -L $DISTRO_ACTIVE_LINK ]; then
                         DISTRO_CURRENT=$(basename $(readlink $DISTRO_ACTIVE_LINK))
                         if [ "$DISTRO_CURRENT" = "$ITEM" ]; then
@@ -491,6 +578,13 @@ menu_main() {
                     ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
                     # TODO: create .env file
                     msg info "Distributive \"$DISTRO_NEW\" created"
+                    if [ -L $DISTRO_ACTIVE_LINK ]; then
+                        if ask_yes "Do you want make new distributive $DISTRO_NEW active?"; then
+                            distro_make_active $DISTROS_DIR/$DISTRO_NEW
+                        fi
+                    else
+                        distro_make_active $DISTROS_DIR/$DISTRO_NEW
+                    fi
                 fi
             ;;
             r)
