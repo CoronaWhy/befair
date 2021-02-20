@@ -207,7 +207,9 @@ ask_yes() {
 get_active_service_status() {
     YAML=$(basename $1)
     if [ -L $DEPLOY_ACTIVE_LINK/$YAML ]; then
-        echo "is link to $(readlink $DEPLOY_ACTIVE_LINK/$YAML | sed 's,\(\.\./\)*,,')"
+        YAML="$(readlink $DEPLOY_ACTIVE_LINK/$YAML | sed 's,\(\.\./\)*,,')"
+        [ ! -e $YAML ] && YAML="$YAML (not exist!)"
+        echo "is link to $YAML"
     else
         echo "is file $(readlink $DEPLOY_ACTIVE_LINK)/$YAML"
     fi
