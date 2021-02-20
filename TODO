@@ -7,6 +7,10 @@
  - [menuconfig] implement export docker-compose.override.yaml from *.override.yaml files
  - [menuconfig] handle .env files in
 
+ - [menuconfig] add command from command line. like: menuconfig export
+ - make export, make export-tgz
+ - make menuconfig from distributive directory and exports/(?)
+
  + services-avalable/*.mk
  - allow run several deployments in same host
    - fix tcp ports intersection
