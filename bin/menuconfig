@@ -8,6 +8,8 @@ DEPLOY_ACTIVE_LINK=distributive-active
 SERVICES_AVAILABLE_DIR=services-available
 STANDALONE_DIR=exports
 
+MENU_HR="==================================================================================="
+
 ################################
 msg() {
     TYPE=$1
@@ -305,8 +307,6 @@ export_standalone_distributive() {
 }
 
 ############################################################################################
-MENU_HR="==================================================================================="
-
 menu_show_active_deployment() {
     msg norm $MENU_HR
     if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
@@ -370,12 +370,12 @@ menu_show_prompt() {
     fi
 
     ############ deployment choose list ##############
-    PROMPT="${PROMPT}$MENU_HR\n\n"
     case $MENU_MODE in
         choose-deploy-available)
             if [ -L $DEPLOY_ACTIVE_LINK ]; then
                 ACTIVATE_DEPLOY=$(get_deploys_list $DEPLOYS_DIR)
 
+                PROMPT="${PROMPT}$MENU_HR\n\n"
                 # to $DEPLOYS_DIR/ will be added ITEM in gen_menu_items
                 gen_menu_items "Available deployments. Choose deployment to make it active:\n" \
                                ACTIVATE_DEPLOY \
@@ -393,6 +393,7 @@ menu_show_prompt() {
         ;;
     esac
     if [ -L $DEPLOY_ACTIVE_LINK -a "$MENU_MODE" != "choose-deploy-available" ]; then
+        PROMPT="${PROMPT}$MENU_HR\n\n"
         PROMPT="${PROMPT} c) Choose available deployment         [ mode ]\n"
     fi
 
