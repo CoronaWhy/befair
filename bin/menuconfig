@@ -718,6 +718,7 @@ menu_main() {
             [0-9]*) menu_numeric_index_action    ;;
             c)
                 menu_is_active_item choose-distro-available || $CONTINUE_WRONG
+                MENU_MODE=choose-distro-available
             ;;
             C)
                 menu_is_active_item create-distro || $CONTINUE_WRONG
