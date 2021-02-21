@@ -252,16 +252,17 @@ ask_distro_name() {
     # ctrl-c will cancel action
     trap 'CTRL_C=1' INT
 
-    while printf "Enter distributive name [${C_MENU_KEY}ctrl-c${C_NONE} to cancel]: "
+    while printf "Enter distributive name to $3 [${C_MENU_KEY}ctrl-c${C_NONE} to cancel]: "
           read ANS
     do
 
+        [ -z "$ANS" ] && continue
         if echo "$ANS" | grep -q '[^a-zA-Z0-9_-]'; then
             msg warn "Distributive name must consist only 'a-z', 'A-Z', '0-9', '_' or '-'"
             continue
         fi
 
-        if [ "$2" = "new" -a -e $DISTROS_DIR/$ANS ]; then
+        if [ "$2" = "new" -a -e "$DISTROS_DIR/$ANS" ]; then
             msg warn "Distributive \"$ANS\" already exist"
             continue
         fi
@@ -498,7 +499,7 @@ export_standalone_distributive() {
 }
 
 create_distro() {
-    ask_distro_name DISTRO_NEW new
+    ask_distro_name DISTRO_NEW new create
     if [ -n "$DISTRO_NEW" ]; then
         mkdir -p $DISTROS_DIR/$DISTRO_NEW
         ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
@@ -517,6 +518,18 @@ create_distro() {
 }
 
 ############################################################################################
+menu_add_item() {
+    PROMPT="${PROMPT} ${C_MENU_KEY}$1)${C_NONE} $2\n"
+    MENU_ACTIVE_ELEMENT="$MENU_ACTIVE_ELEMENT $3"
+}
+
+menu_is_active_item() {
+    case $MENU_ACTIVE_ELEMENT in
+        *$1*) return 0;;
+           *) return 1;;
+    esac
+}
+
 menu_show_active_distributive() {
     msg hr $MENU_HR
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
@@ -560,8 +573,9 @@ menu_show_prompt() {
             gen_menu_items "Available distributives. Choose distributive to make ${C_MSG_TIPS}copy${C_NONE}:\n" \
                            COPY_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
-            PROMPT="${PROMPT} ${C_MENU_KEY}m${C_NONE}) Make new distributive\n"
+            menu_add_item m "Make new distributive" make-new-distro
             PROMPT="${PROMPT} ${C_MENU_KEY}R${C_NONE}) Remove distributive\n"
+            menu_add_item R "Remove distributive" remove-distro
         ;;
 
         remove-distro)
@@ -606,22 +620,18 @@ menu_show_prompt() {
     esac
     if [ -L $DISTRO_ACTIVE_LINK -a "$MENU_MODE" != "choose-distro-available" ]; then
         PROMPT="${PROMPT}$MENU_HR_C\n\n"
-        PROMPT="${PROMPT} ${C_MENU_KEY}c)${C_NONE} Choose available distributive       [ mode ]\n\n"
+        menu_add_item c "Choose available distributive       [ mode ]" choose-distro-available
     fi
 
 
     ############ distributives modes list ##############
     PROMPT="${PROMPT}$MENU_HR_C\n\n"
     if [ "$MENU_MODE" != "create-distro" ]; then
-        PROMPT="${PROMPT} ${C_MENU_KEY}C)${C_NONE} Create new distributive             [ mode ]\n"
-        # TODO: prevent calling 'C' when menu not showed
-        # MENU_ACTIVE_ELEMENT="$MENU_ACTIVE_ELEMENT create-distro"
-        # and handle it in main_menu()
-        # IDEA: menu_add_item C "Create new distributive             [ mode ]" create-distro
+        menu_add_item C "Create new distributive             [ mode ]" create-distro
     fi
 
     if [ "$MENU_MODE" != "remove-distro" ]; then
-        PROMPT="${PROMPT} ${C_MENU_KEY}R)${C_NONE} Remove distributive                 [ mode ]\n"
+        menu_add_item R "Remove distributive                 [ mode ]" remove-distro
     fi
 
     PROMPT="${PROMPT}\n ${C_MENU_KEY}q)${C_NONE} Quit\n"
@@ -662,7 +672,7 @@ menu_numeric_index_action() {
             ;;
 
             COPY_DISTRO)
-                ask_distro_name DISTRO_NEW new
+                ask_distro_name DISTRO_NEW new copy
                 if [ -n "$DISTRO_NEW" ]; then
                     cp -ra $DISTROS_DIR/$ITEM $DISTROS_DIR/$DISTRO_NEW
                     msg info "Distributive \"$DISTRO_NEW\" created from \"$ITEM\""
@@ -694,6 +704,7 @@ menu_numeric_index_action() {
 }
 
 menu_main() {
+    CONTINUE_WRONG="eval { echo Wrong input; continue; }"
 
     clear
     while menu_unset_variables
@@ -705,14 +716,25 @@ menu_main() {
 
         case $ANS in
             [0-9]*) menu_numeric_index_action    ;;
-            c) MENU_MODE=choose-distro-available ;;
-            C) MENU_MODE=create-distro           ;;
-            R) MENU_MODE=remove-distro           ;;
+            c)
+                menu_is_active_item choose-distro-available || $CONTINUE_WRONG
+            ;;
+            C)
+                menu_is_active_item create-distro || $CONTINUE_WRONG
+                MENU_MODE=create-distro
+            ;;
+            R)
+                menu_is_active_item remove-distro || $CONTINUE_WRONG
+                MENU_MODE=remove-distro
+            ;;
             m)
+                menu_is_active_item make-new-distro || $CONTINUE_WRONG
                 create_distro
             ;;
             r)
-                ask_distro_name DISTRO_NEW new
+                [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
+
+                ask_distro_name DISTRO_NEW new rename
                 if [ -n "$DISTRO_NEW" ]; then
                     DISTRO_CURRENT=$(readlink $DISTRO_ACTIVE_LINK)
                     mv $DISTRO_CURRENT $DISTROS_DIR/$DISTRO_NEW
@@ -721,10 +743,12 @@ menu_main() {
                 fi
             ;;
             d)
-                [ -L $DISTRO_ACTIVE_LINK ] && rm $DISTRO_ACTIVE_LINK && \
-                    msg info "Active distributive \"$DISTRO_ACTIVE\" disabled."
+                [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
+                rm $DISTRO_ACTIVE_LINK
+                msg info "Active distributive \"$DISTRO_ACTIVE\" disabled."
             ;;
             e)
+                [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
                 export_standalone_distributive $DISTRO_ACTIVE_LINK
             ;;
 
