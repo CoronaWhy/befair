@@ -530,18 +530,18 @@ menu_show_active_distributive() {
         msg hr $MENU_HR
     fi
 
-    printf "${C_MENU_TITLE}Active distributive is \"$DISTRO_ACTIVE\".${C_NONE} "
+    printf "${C_MENU_TITLE}Active distributive is \"${C_LGRN}$DISTRO_ACTIVE${C_MENU_TITLE}\".${C_NONE} "
 
     SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
     if [ -n "$SERVICES_ACTIVE" ]; then
-        gen_menu_items "Choose active service to disable it:\n" \
+        gen_menu_items "Choose active service to ${C_MSG_TIPS}disable${C_NONE}:\n" \
                        SERVICES_ACTIVE \
                        "get_active_service_status "
     fi
 
     SERVICES_AVAILABLE=$(get_services_available_list $DISTRO_ACTIVE_LINK)
     if [ -n "$SERVICES_AVAILABLE" ]; then
-        gen_menu_items "Choose available service to enable it:\n" \
+        gen_menu_items "Choose available service to ${C_MSG_TIPS}enable${C_NONE}:\n" \
                        SERVICES_AVAILABLE \
                        "get_service_info $SERVICES_AVAILABLE_DIR/"
     fi
