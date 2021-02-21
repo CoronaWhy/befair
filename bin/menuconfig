@@ -1,5 +1,6 @@
 #!/bin/sh -e
 
+PROG=$(basename $0)
 BASEDIR=$(realpath $(dirname $(realpath $0))/..)
 cd $BASEDIR
 
@@ -454,7 +455,7 @@ make_docker_compose_yaml() {
 export_standalone_distributive() {
     DISTRO_DIR=$(readlink $1)
     DISTRO_NAME=$(basename $DISTRO_DIR)
-    DISTRO_STANDALONE_DIR=$STANDALONE_DIR/$DISTRO_NAME
+    DISTRO_STANDALONE_DIR="$STANDALONE_DIR/$DISTRO_NAME"
 
     if ! distro_is_valid $DISTRO_DIR err; then
         msg err "Exporting "$DISTRO_NAME" fail"
@@ -734,7 +735,24 @@ menu_main() {
     done
 }
 
-################################
+usage() {
+    cat << __USAGE_END
+Usage: $PROG [-s standalone-export-dir] [-h]
+    -h  - this help
+    -s  - standalone export directory (default $STANDALONE_DIR)
+__USAGE_END
+    exit $1
+}
+
+############## main() ##################
+while getopts hs: FLAG; do
+    case $FLAG in
+        h) usage;;
+        s) STANDALONE_DIR="$OPTARG";;
+    esac
+done
+shift $((OPTIND - 1))
+
 check_active
 
 menu_main
