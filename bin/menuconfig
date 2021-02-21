@@ -8,6 +8,8 @@ DISTRO_ACTIVE_LINK=distributive-active
 SERVICES_AVAILABLE_DIR=services-available
 STANDALONE_DIR=exports
 
+MENU_COL1_WIDHT=35
+
 ################################
 
 # Colors
@@ -20,6 +22,10 @@ C_LBLUE="\033[1;36m" C_CYAN="\033[0;36m"
 
 C_MENU_KEY="$C_WHITE"
 C_MENU_TITLE="$C_WHITE"
+C_MENU_LINK=""
+C_MENU_FILE="$C_GRN"
+C_MENU_IMAGE="$C_YEL"
+C_MENU_SERVICE="$C_MAG"
 
 C_MSG_WARN="$C_LMAG"
 C_MSG_ERR="$C_LRED"
@@ -171,10 +177,14 @@ get_services_active_list() {
     for SERVICE in "$1"/*.yaml; do
         if [ -n "$IS_SHORT_LIST" ]; then
             SNAME="$(basename $SERVICE .yaml)"
-            if [ -L $SERVICE -a ! -e $SERVICE ]; then
-                SERVICE="${C_MSG_ERR}$SNAME${C_NONE}"
+            if [ -L $SERVICE ]; then
+                if [ ! -e $SERVICE ]; then
+                    SERVICE="${C_MSG_ERR}$SNAME${C_NONE}"
+                else
+                    SERVICE="${C_MENU_LINK}$SNAME${C_NONE}"
+                fi
             else
-                SERVICE="$SNAME"
+                SERVICE="${C_MENU_FILE}$SNAME${C_NONE}"
             fi
         else
             # remove prefix with $DISTROS_DIR
@@ -225,7 +235,7 @@ gen_menu_items() {
             eval ADDITIONAL_INFO="\"\$($FUNC_ADDITIONAL_INFO$ITEM)\""
         fi
 
-        PROMPT="${PROMPT}$(printf "${C_MENU_KEY}%2d${C_NONE}) %-35s [ %s ]" ${MENU_INDEX} "$ITEM" "$ADDITIONAL_INFO")\n"
+        PROMPT="${PROMPT}$(printf "${C_MENU_KEY}%2d${C_NONE}) %-${MENU_COL1_WIDHT}s [ %s ]" ${MENU_INDEX} "$ITEM" "$ADDITIONAL_INFO")\n"
         eval MENU_ITEM_${VAR_NAME}_$MENU_INDEX="\$ITEM"
     done
     PROMPT="${PROMPT}\n"
@@ -241,12 +251,9 @@ ask_distro_name() {
     # ctrl-c will cancel action
     trap 'CTRL_C=1' INT
 
-    while printf "Enter distributive name: "
+    while printf "Enter distributive name [${C_MENU_KEY}ctrl-c${C_NONE} to cancel]: "
           read ANS
     do
-        if [ -n "$CTRL_C" ]; then
-            break
-        fi
 
         if echo "$ANS" | grep -q '[^a-zA-Z0-9_-]'; then
             msg warn "Distributive name must consist only 'a-z', 'A-Z', '0-9', '_' or '-'"
@@ -261,6 +268,9 @@ ask_distro_name() {
         eval $1="\$ANS"
         break
     done
+
+    [ -n "$CTRL_C" ] && echo
+
     trap - INT
     unset CTRL_C
 }
@@ -277,26 +287,50 @@ menu_unset_variables() {
 }
 
 ask_yes() {
-    while printf "$1 [yes/no]: "
+    trap 'CTRL_C=1' INT
+    ASK_YES_MSG="[${C_MENU_KEY}yes${C_NONE}/"
+    ASK_YES_MSG="$ASK_YES_MSG${C_MENU_KEY}no${C_NONE}/"
+    ASK_YES_MSG="$ASK_YES_MSG(${C_MENU_KEY}c${C_NONE})ancel"
+    ASK_YES_MSG="$ASK_YES_MSG or ${C_MENU_KEY}ctrl-c${C_NONE}]: "
+
+    while printf "$1 $ASK_YES_MSG"
           read ANS
     do
         case $ANS in
-            yes) return 0;;
-            no)  return 1;;
+            yes)       RC=0; break ;;
+            no)        RC=1; break ;;
+            c|cancel)  RC=2; break ;;
             *)   msg err "Wrong input";;
         esac
     done
+
+    if [ -n "$CTRL_C" ]; then
+        RC=2
+        echo
+        break
+    fi
+    trap - INT
+    unset CTRL_C
+    return $RC
 }
 
 get_active_service_status() {
     YAML=$(basename $1)
     if [ -L $DISTRO_ACTIVE_LINK/$YAML ]; then
         YAML="$(readlink $DISTRO_ACTIVE_LINK/$YAML | sed 's,\(\.\./\)*,,')"
-        [ ! -e $YAML ] && YAML="$YAML ${C_MSG_ERR}Not exist!${C_NONE}"
-        echo "is link to $YAML"
+        _YAML=$YAML
+        [ ! -e $YAML ] && YAML="${C_MSG_ERR}$YAML Not exist!${C_NONE}"
+        _TYPE="is link to $YAML"
     else
-        echo "is file $(readlink $DISTRO_ACTIVE_LINK)/$YAML"
+        _YAML=$(readlink $DISTRO_ACTIVE_LINK)/$YAML
+        _TYPE="is file ${C_MENU_FILE}$_YAML${C_NONE}"
     fi
+
+    if [ -e $_YAML ]; then
+        get_service_info $_YAML
+        printf "%-$((MENU_COL1_WIDHT + 6))s %s" " "
+    fi
+    echo "$_TYPE"
     unset YAML
 }
 
@@ -311,6 +345,77 @@ get_distro_status() {
     distro_is_valid $1 short
 
     unset SERVICES
+}
+
+get_service_info() {
+    awk '
+        BEGIN {
+            service_regexp = "^[ \t][ \t]*[^ \t:][^ \t:]*:[ \t]*$"
+            image_regexp = "^[ \t]*image:"
+            state = "wait_service"
+            n = 0 # string count
+        }
+
+        /^[ \t]]*#/ || /^[ \t]*$/ { next }
+
+        /^[^ \t]*:[ \t]*&[^ \t][^ \t]*[ \t][ \t]*[^ \t][^ \t]*[ \t]*$/ {
+            sub(/&/,"");
+            alias[$2] = $3
+            # if we meet something like x-superset-image, skip till "service:"
+            state = ""
+            next
+        }
+
+        /^services:/{
+            state = "wait_service"
+            next
+        }
+
+        state == "wait_service" && $0 ~ service_regexp {
+            service_name = $1;
+
+            if (!regexp_done) {
+                sub(/[^ \t].*/,"");
+                service_regexp = "^"$0"[^ \t:][^ \t:]*:[ \t]*$"
+            }
+
+            state = "wait_image"
+            next
+        }
+
+        state == "wait_image" && $0 ~ image_regexp {
+            if (sub(/^[*]/,"",$2)) {
+                image_name = alias[$2]
+            } else {
+                image_name = $2;
+            }
+
+            s = out[n]" "service_name"["$2"]"
+            if (length(s) > 60) {
+                n++
+            }
+
+            sep = " "
+            if (length(out[n]) == 0)
+                sep = ""
+
+            out[n] = out[n]""sep"'${C_MENU_SERVICE}'"service_name"'${C_NONE}'['${C_MENU_IMAGE}'"image_name"'${C_NONE}']"
+
+            if (!regexp_done) {
+                sub(/[^ \t].*/,"");
+                image_regexp = "^"$0"image:"
+                regexp_done=1
+            }
+
+            state = "wait_service"
+            next
+        }
+        END {
+            print out[0];
+            for (i = 1; i <= n; i++)
+                printf("%-'$((MENU_COL1_WIDHT + 6))'s %s\n", " ", out[i]);
+        }
+    ' $1
 }
 
 make_docker_compose_yaml() {
@@ -359,9 +464,12 @@ export_standalone_distributive() {
     if [ -d $DISTRO_STANDALONE_DIR ]; then
         if ask_yes "Directory $DISTRO_STANDALONE_DIR exist, do you want remove it before export?"; then
             rm -r $DISTRO_STANDALONE_DIR
+        else
+            [ $? = 2 ] && return # cancel
         fi
     fi
-    mkdir -p $STANDALONE_DIR/$DISTRO_NAME
+
+    mkdir -p "$STANDALONE_DIR/$DISTRO_NAME"
 
     make_docker_compose_yaml $DISTRO_ACTIVE_LINK $DISTRO_STANDALONE_DIR
 
@@ -386,6 +494,25 @@ export_standalone_distributive() {
     msg tips "You can make tar.gz by:"
     msg tips "\$ cd $DISTRO_STANDALONE_DIR"
     msg tips "\$ make tgz"
+}
+
+create_distro() {
+    ask_distro_name DISTRO_NEW new
+    if [ -n "$DISTRO_NEW" ]; then
+        mkdir -p $DISTROS_DIR/$DISTRO_NEW
+        ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
+        # TODO: create .env file
+        msg info "Distributive \"$DISTRO_NEW\" created"
+        if [ -L $DISTRO_ACTIVE_LINK ]; then
+            if ask_yes "Do you want make new distributive $DISTRO_NEW active?"; then
+                distro_make_active $DISTROS_DIR/$DISTRO_NEW
+            else
+                [ $? = 2 ] && return # cancel
+            fi
+        else
+            distro_make_active $DISTROS_DIR/$DISTRO_NEW
+        fi
+    fi
 }
 
 ############################################################################################
@@ -413,7 +540,9 @@ menu_show_active_distributive() {
 
     SERVICES_AVAILABLE=$(get_services_available_list $DISTRO_ACTIVE_LINK)
     if [ -n "$SERVICES_AVAILABLE" ]; then
-        gen_menu_items "Choose available service to enable it:\n" SERVICES_AVAILABLE
+        gen_menu_items "Choose available service to enable it:\n" \
+                       SERVICES_AVAILABLE \
+                       "get_service_info $SERVICES_AVAILABLE_DIR/"
     fi
 }
 
@@ -430,8 +559,8 @@ menu_show_prompt() {
             gen_menu_items "Available distributives. Choose distributive to make ${C_MSG_TIPS}copy${C_NONE}:\n" \
                            COPY_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
-            PROMPT="${PROMPT} ${C_WHITE}m)${C_NONE} Make new distributive\n"
-            PROMPT="${PROMPT} ${C_WHITE}R)${C_NONE} Remove distributive\n"
+            PROMPT="${PROMPT} ${C_MENU_KEY}m${C_NONE}) Make new distributive\n"
+            PROMPT="${PROMPT} ${C_MENU_KEY}R${C_NONE}) Remove distributive\n"
         ;;
 
         remove-distro)
@@ -443,10 +572,10 @@ menu_show_prompt() {
     esac
 
     if [ -L $DISTRO_ACTIVE_LINK ]; then
-        PROMPT="${PROMPT} ${C_WHITE}d)${C_NONE} Disable current distributive\n"
-        PROMPT="${PROMPT} ${C_WHITE}r)${C_NONE} Rename current distributive\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}d${C_NONE}) Disable current distributive\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}r${C_NONE}) Rename current distributive\n"
         if distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE null; then
-            PROMPT="${PROMPT}\n ${C_WHITE}e$C_NONE) Export from current distributive to standalone distributive docker-compose.yaml\n"
+            PROMPT="${PROMPT}\n ${C_MENU_KEY}e$C_NONE) Export from current distributive to standalone distributive docker-compose.yaml\n"
         fi
         PROMPT="${PROMPT}\n"
     fi
@@ -484,6 +613,10 @@ menu_show_prompt() {
     PROMPT="${PROMPT}$MENU_HR_C\n\n"
     if [ "$MENU_MODE" != "create-distro" ]; then
         PROMPT="${PROMPT} ${C_MENU_KEY}C)${C_NONE} Create new distributive             [ mode ]\n"
+        # TODO: prevent calling 'C' when menu not showed
+        # MENU_ACTIVE_ELEMENT="$MENU_ACTIVE_ELEMENT create-distro"
+        # and handle it in main_menu()
+        # IDEA: menu_add_item C "Create new distributive             [ mode ]" create-distro
     fi
 
     if [ "$MENU_MODE" != "remove-distro" ]; then
@@ -570,25 +703,12 @@ menu_main() {
         clear
 
         case $ANS in
-            [0-9]*) menu_numeric_index_action         ;;
-            c)      MENU_MODE=choose-distro-available ;;
-            C)      MENU_MODE=create-distro           ;;
-            R)      MENU_MODE=remove-distro           ;;
+            [0-9]*) menu_numeric_index_action    ;;
+            c) MENU_MODE=choose-distro-available ;;
+            C) MENU_MODE=create-distro           ;;
+            R) MENU_MODE=remove-distro           ;;
             m)
-                ask_distro_name DISTRO_NEW new
-                if [ -n "$DISTRO_NEW" ]; then
-                    mkdir -p $DISTROS_DIR/$DISTRO_NEW
-                    ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
-                    # TODO: create .env file
-                    msg info "Distributive \"$DISTRO_NEW\" created"
-                    if [ -L $DISTRO_ACTIVE_LINK ]; then
-                        if ask_yes "Do you want make new distributive $DISTRO_NEW active?"; then
-                            distro_make_active $DISTROS_DIR/$DISTRO_NEW
-                        fi
-                    else
-                        distro_make_active $DISTROS_DIR/$DISTRO_NEW
-                    fi
-                fi
+                create_distro
             ;;
             r)
                 ask_distro_name DISTRO_NEW new
@@ -600,8 +720,8 @@ menu_main() {
                 fi
             ;;
             d)
-                [ -L $DISTRO_ACTIVE_LINK ] && rm $DISTRO_ACTIVE_LINK
-                msg info "Active distributive \"$DISTRO_ACTIVE\" disabled."
+                [ -L $DISTRO_ACTIVE_LINK ] && rm $DISTRO_ACTIVE_LINK && \
+                    msg info "Active distributive \"$DISTRO_ACTIVE\" disabled."
             ;;
             e)
                 export_standalone_distributive $DISTRO_ACTIVE_LINK
