@@ -38,7 +38,7 @@ check-all:
         $(MAKE) menuconfig;                                        \
 	elif [ ! -e $(DISTRO_ACTIVE_LINK) ]; then                      \
 			echo "$(DISTRO_ACTIVE_LINK) is brocken symbolic link." \
-                "It's should be link to active distributive setup" >&2; \
+                "It should be a link to an active distributive setup" >&2; \
 			exit 1;                                               \
 		fi; \
     fi; \
