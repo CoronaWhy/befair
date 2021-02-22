@@ -35,9 +35,9 @@ The list of services integrated in BeFAIR:
 * [INDRA](https://indralab.github.io) (INDRA REST API https://indra.readthedocs.io/en/latest/rest_api.html)
 * [Apache Superset](https://github.com/apache/superset) (in progress) 
 * [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
+* CoronaWhy API (FastAPI with OpenAPI spec)
 
 To Do (we re accepting Pull Requests, please join the project if you want to contribute!):
-* CoronaWhy API (FastAPI with OpenAPI spec)
 * Elasticsearch 
 * SPARQL endpoint (Virtuoso as a service)
 * Grlc (SPARQL queries into RESTful APIs convertor)
@@ -77,17 +77,20 @@ newgrp docker
 
 If you see the message: "ERROR: Network traefik declared as external, but could not be found", please create the network manually using `docker network create traefik` and try again.
 
-After Docker is installed you can run BeFAIR:
+After Docker is installed you can check the consistency of all BeFAIR distributives:
 ```
 git clone https://github.com/CoronaWhy/befair
 cd befair
-cd distributives
+make check-all
 ```
 
-You'll find a lot of distributives for the different research communities there. Choose some of the, for example, "fair", and start with command:
+You can find all available installations in "distributives" folder. Different distributives are suitable for various research communities.
+
+Choose some distributive, for example, "fair", and start/stop all services with commands:
 ```
 cd fair
 make up
+make down
 ```
 
 Warning: please use init commands for Apache Airflow and Apache Superset:
@@ -95,6 +98,10 @@ Warning: please use init commands for Apache Airflow and Apache Superset:
 make airflow
 make superset
 ```
+
+# Menuconfig
+
+BeFAIR has a tool to manage all services, it's located in bin/menuconfig. You can enable/disable both services and distributives there in a convinient way. 
 
 # Citation for the academic use
 
