@@ -3,17 +3,45 @@
 BASEDIR=$(realpath $(dirname $(realpath $0))/..)
 cd $BASEDIR
 
-DEPLOYS_DIR=deploys
-DEPLOY_ACTIVE_LINK=deploy-active
+DISTROS_DIR=distributives
+DISTRO_ACTIVE_LINK=distributive-active
 SERVICES_AVAILABLE_DIR=services-available
+STANDALONE_DIR=exports
 
 ################################
+
+# Colors
+C_NONE="\033[0m"     C_WHITE="\033[1;37m"
+C_RED="\033[0;31m"   C_LRED="\033[1;31m"
+C_GRN="\033[0;32m"   C_LGRN="\033[1;32m"
+C_YEL="\033[0;33m"   C_LYEL="\033[1;33m"
+C_MAG="\033[0;35m"   C_LMAG="\033[1;35m"
+C_LBLUE="\033[1;36m" C_CYAN="\033[0;36m"
+
+C_MENU_KEY="$C_WHITE"
+C_MENU_TITLE="$C_WHITE"
+
+C_MSG_WARN="$C_LMAG"
+C_MSG_ERR="$C_LRED"
+C_MSG_NORM=""
+C_MSG_INFO="$C_LGRN"
+C_MSG_TIPS="$C_LYEL"
+C_MSG_HR="$C_CYAN"
+
+MENU_HR="==================================================================================="
+MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
+
 msg() {
     TYPE=$1
     shift
     case "$TYPE" in
-        warn) printf "%s\n" "$*" >&2 ;;
-        err)  printf "%s\n" "$*" >&2 ;;
+        err)  printf "$C_MSG_ERR%s$C_NONE\n" "$*" >&2 ;;
+        warn) printf "$C_MSG_WARN%s$C_NONE\n" "$*" >&2 ;;
+        norm) printf "$C_MSG_NORM%s$C_NONE\n" "$*" >&2 ;;
+        info) printf "$C_MSG_INFO%s$C_NONE\n" "$*" >&2 ;;
+        tips) printf "$C_LYEL%s$C_NONE\n" "$*" >&2 ;;
+        hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" >&2 ;;
+        null) ;;
         *)    printf "%s\n" "$*" ;;
     esac
 }
@@ -24,36 +52,136 @@ die() {
 }
 
 check_active() {
-    if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
-        if [ -e $DEPLOY_ACTIVE_LINK ]; then
-            die "$DEPLOY_ACTIVE_LINK is not a symbolic link." \
-                "It's should be link to active deployment setup"
+    if [ ! -L $DISTRO_ACTIVE_LINK ]; then
+        if [ -e $DISTRO_ACTIVE_LINK ]; then
+            die "$DISTRO_ACTIVE_LINK is not a symbolic link." \
+                "It's should be link to active distributive setup"
         fi
+    elif [ ! -e $DISTRO_ACTIVE_LINK ]; then
+        die "$DISTRO_ACTIVE_LINK is brocken symbolic link." \
+        "It's should be link to active distributive setup"
     fi
 }
 
-check_consistency() {
-    # TODO: check that links deploys/localhost/whoami.yaml
-    # is link to file with same name services-available/whoami.yaml
+distro_is_valid() {
+    DIR="$1"
+    MSG_TYPE="${2:-err}"
 
-    # TODO: check is link deploys/localhost/Makefile to ../../mk/deploys-template.mk
-    # if not, check if there is string 'include ../../mk/deploys-template.mk'
+    if [ "$MSG_TYPE" != "warn" -a "$MSG_TYPE" != "short" ]; then
+        CHECK_EXIT="eval return 1;"
+    else
+        CHECK_EXIT="eval CHECK_EXIT_STATUS=1"
+    fi
 
-    # TODO: check .env file in deployments
-    true
+    if [ "$MSG_TYPE" = "short" ]; then
+        MSG_TYPE=null
+        set_short_msg() {
+            printf " ] [ ${C_MSG_ERR}$1${C_NONE}"
+        }
+    else
+        set_short_msg() {
+            true
+        }
+    fi
+
+    if ! ls $DIR/*.yaml 2> /dev/null 1>&2; then
+        msg $MSG_TYPE "There is no $DIR/*.yaml"
+        set_short_msg "no *.yaml"
+        $CHECK_EXIT
+    elif ! ls $DIR/*.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null; then
+        msg $MSG_TYPE "There is only $DIR/*.override.yaml. Need at least one not override.yaml"
+        set_short_msg "override.yaml only"
+        $CHECK_EXIT
+    fi
+
+    if [ ! -e $DIR/.env ]; then
+        msg $MSG_TYPE "There is no $DIR/.env"
+        set_short_msg "no .env"
+        $CHECK_EXIT
+    fi
+
+    if ls $DIR/*.yml 2> /dev/null >&2; then
+        msg $MSG_TYPE "There is $DIR/*.yml files. Please rename or move out them from distributive"
+        set_short_msg "exist *.yml(!)"
+        $CHECK_EXIT
+    fi
+
+    for YAML in $DIR/*.yaml; do
+        if [ -L $YAML ]; then
+            FILE=$(readlink $YAML)
+            if [ "$(basename $FILE)" != "$(basename $YAML)" ]; then
+                TEST_FAIL=true
+                msg $MSG_TYPE "Link $YAML point to file $FILE with different name"
+            fi
+        fi
+    done
+
+    if [ -n "$TEST_FAIL" ]; then
+        unset TEST_FAIL
+        unset FILE
+        $CHECK_EXIT
+    fi
+
+    if [ -L $DIR/Makefile ]; then
+        case "$(readlink $DIR/Makefile)" in
+            */mk/distro-makefile.mk) ;;
+            *)
+                msg $MSG_TYPE "Link $DIR/Makefile point to file $(readlink $DIR/Makefile), but must be to mk/distro-makefile.mk"
+                set_short_msg "wrong Makefile"
+                $CHECK_EXIT
+            ;;
+        esac
+    fi
+
+    if [ ! -e $DIR/Makefile ]; then
+        msg $MSG_TYPE "There is no $DIR/Makefile"
+        set_short_msg "no Makefile"
+        $CHECK_EXIT
+    else
+        if [ ! -L $DIR/Makefile ] && ! grep -q 'include .*/mk/distro-makefile.mk' $DIR/Makefile; then
+            msg $MSG_TYPE "File $DIR/Makefile not include mk/distro-makefile.mk"
+            set_short_msg "wrong Makefile"
+            $CHECK_EXIT
+        fi
+    fi
+
+    return $CHECK_EXIT_STATUS
 }
 
-get_deploys_list() {
+distro_make_active() {
+    ln -fns $1 $DISTRO_ACTIVE_LINK
+    msg info "Distributive \"$(basename $1)\" active now"
+}
+
+get_distros_list() {
      find "$1" -maxdepth 1 -type d -printf "%P\n"
 }
 
 get_services_active_list() {
     unset SERVICES
+    SERVICE_DIR="$1"
+    IS_SHORT_LIST="$2"
 
-    ls $1/*.yaml 2> /dev/null 1>&2 || return
+    ls "$SERVICE_DIR"/*.yaml 2> /dev/null 1>&2 || return
 
-    for SERVICE in $1/*.yaml; do
-        SERVICES="$SERVICES $(basename $SERVICE .yaml)"
+    if [ -L "$SERVICE_DIR" ]; then
+        SERVICE_DIR=$(readlink $1)
+    fi
+
+    for SERVICE in "$1"/*.yaml; do
+        if [ -n "$IS_SHORT_LIST" ]; then
+            SNAME="$(basename $SERVICE .yaml)"
+            if [ -L $SERVICE -a ! -e $SERVICE ]; then
+                SERVICE="${C_MSG_ERR}$SNAME${C_NONE}"
+            else
+                SERVICE="$SNAME"
+            fi
+        else
+            # remove prefix with $DISTROS_DIR
+            SERVICE=${SERVICE_DIR#*/}/$(basename $SERVICE)
+        fi
+
+        SERVICES="$SERVICES $SERVICE"
     done
 
     echo $SERVICES
@@ -63,10 +191,9 @@ get_services_active_list() {
 get_services_available_list() {
     unset SERVICES
 
-    for SERVICE in $SERVICES_AVAILABLE_DIR/*.yaml; do
-        SERVICE=$(basename $SERVICE)
-        if [ -z "$1" -o ! -e $1/$SERVICE ]; then
-            SERVICES="$SERVICES $(basename $SERVICE .yaml)"
+    for SERVICE in $(find $SERVICES_AVAILABLE_DIR -name '*.yaml' -printf "%P\n" | sort); do
+        if [ -z "$1" -o ! -e $1/$(basename $SERVICE) ]; then
+            SERVICES="$SERVICES $SERVICE"
         fi
     done
 
@@ -79,10 +206,12 @@ get_services_available_list() {
 # 2. Use value of variable name from $2
 # 2. MENU_ITEM_<$2>_<number> variable name from $2.. parameters
 # 3. Add ITEMS to PROMPT
+# 4. optional $3 is name of fuction to generate additional info for item
 gen_menu_items() {
 
-    PROMPT="${PROMPT}$1"
+    PROMPT="${PROMPT}${C_MENU_TITLE}$1${C_NONE}"
     VAR_NAME="$2"
+    FUNC_ADDITIONAL_INFO="$3"
 
     # set $@ from variable name in $2
     eval set \$$VAR_NAME
@@ -90,15 +219,21 @@ gen_menu_items() {
     [ -z "$MENU_INDEX" ] && MENU_INDEX=0
     for ITEM in $@; do
         MENU_INDEX=$((MENU_INDEX + 1))
-        PROMPT="${PROMPT}$(printf "%2d)" ${MENU_INDEX}) $ITEM\n"
+
+        ADDITIONAL_INFO=
+        if [ -n "$FUNC_ADDITIONAL_INFO" ]; then
+            eval ADDITIONAL_INFO="\"\$($FUNC_ADDITIONAL_INFO$ITEM)\""
+        fi
+
+        PROMPT="${PROMPT}$(printf "${C_MENU_KEY}%2d${C_NONE}) %-35s [ %s ]" ${MENU_INDEX} "$ITEM" "$ADDITIONAL_INFO")\n"
         eval MENU_ITEM_${VAR_NAME}_$MENU_INDEX="\$ITEM"
     done
     PROMPT="${PROMPT}\n"
 }
 
-# $1: variable name to return deployment namw
-# $2: optional parameter "new", to check if deployment already exist
-ask_deploy_name() {
+# $1: variable name to return distributive namw
+# $2: optional parameter "new", to check if distributive already exist
+ask_distro_name() {
 
     # clear variable if it still exist from last time
     unset $1
@@ -106,7 +241,7 @@ ask_deploy_name() {
     # ctrl-c will cancel action
     trap 'CTRL_C=1' INT
 
-    while printf "Enter deployment name: "
+    while printf "Enter distributive name: "
           read ANS
     do
         if [ -n "$CTRL_C" ]; then
@@ -114,12 +249,12 @@ ask_deploy_name() {
         fi
 
         if echo "$ANS" | grep -q '[^a-zA-Z0-9_-]'; then
-            msg warn "Deployment name must consist only 'a-z', 'A-Z', '0-9', '_' or '-'"
+            msg warn "Distributive name must consist only 'a-z', 'A-Z', '0-9', '_' or '-'"
             continue
         fi
 
-        if [ "$2" = "new" -a -e $DEPLOYS_DIR/$ANS ]; then
-            msg warn "Deployment \"$ANS\" already exist"
+        if [ "$2" = "new" -a -e $DISTROS_DIR/$ANS ]; then
+            msg warn "Distributive \"$ANS\" already exist"
             continue
         fi
 
@@ -141,24 +276,142 @@ menu_unset_variables() {
     clear_variables_by_prefix MENU_ITEM_
 }
 
-######################################################################
-menu_show_active_deployment() {
-    echo "=============================================================================="
-    if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
-        msg warn "No active deployment"
-        msg warn ""
+ask_yes() {
+    while printf "$1 [yes/no]: "
+          read ANS
+    do
+        case $ANS in
+            yes) return 0;;
+            no)  return 1;;
+            *)   msg err "Wrong input";;
+        esac
+    done
+}
+
+get_active_service_status() {
+    YAML=$(basename $1)
+    if [ -L $DISTRO_ACTIVE_LINK/$YAML ]; then
+        YAML="$(readlink $DISTRO_ACTIVE_LINK/$YAML | sed 's,\(\.\./\)*,,')"
+        [ ! -e $YAML ] && YAML="$YAML ${C_MSG_ERR}Not exist!${C_NONE}"
+        echo "is link to $YAML"
+    else
+        echo "is file $(readlink $DISTRO_ACTIVE_LINK)/$YAML"
+    fi
+    unset YAML
+}
+
+get_distro_status() {
+
+    SERVICES=$(get_services_active_list $1 short)
+
+    if [ -n "$SERVICES" ]; then
+        printf "services: $SERVICES"
+    fi
+
+    distro_is_valid $1 short
+
+    unset SERVICES
+}
+
+make_docker_compose_yaml() {
+    DIR_IN="$(readlink $1)"
+    FILE_OUT="$2/docker-compose.yaml"
+
+    SEP='###########################'
+
+    unset FIRST
+
+    for YAML in $DIR_IN/*.yaml; do
+        case $1 in
+            *.override.yaml) ;;
+            *)
+                if [ -L $YAML ]; then
+                    YAML_REAL=$(readlink $YAML)
+                fi
+                if [ -z "$FIRST" ]; then
+                    FIRST=1
+                    printf "$SEP$SEP$SEP\n" > $FILE_OUT
+                    printf "# File automatically generated by BeFAIR (https://github.com/CoronaWhy/befair)\n#\n" >> $FILE_OUT
+                    printf "# Distributives \"$DIR_IN\" as standalone distributives\n" >> $FILE_OUT
+                    printf "$SEP$SEP$SEP\n\n" >> $FILE_OUT
+                    printf "\n$SEP %-30s $SEP\n\n" $YAML_REAL >> $FILE_OUT
+                    cat $YAML             >> $FILE_OUT
+                else
+                    printf "\n$SEP %-30s $SEP\n\n" $YAML_REAL >> $FILE_OUT
+                    sed -e '/^version:/d; /^services:/d' $YAML >> $FILE_OUT
+                fi
+            ;;
+        esac
+    done
+
+}
+
+export_standalone_distributive() {
+    DISTRO_DIR=$(readlink $1)
+    DISTRO_NAME=$(basename $DISTRO_DIR)
+    DISTRO_STANDALONE_DIR=$STANDALONE_DIR/$DISTRO_NAME
+
+    if ! distro_is_valid $DISTRO_DIR err; then
+        msg err "Exporting "$DISTRO_NAME" fail"
         return
     fi
 
-    DEPLOY_ACTIVE=$(basename $(readlink $DEPLOY_ACTIVE_LINK))
-    echo -n "Active deployment is \"$DEPLOY_ACTIVE\". "
+    if [ -d $DISTRO_STANDALONE_DIR ]; then
+        if ask_yes "Directory $DISTRO_STANDALONE_DIR exist, do you want remove it before export?"; then
+            rm -r $DISTRO_STANDALONE_DIR
+        fi
+    fi
+    mkdir -p $STANDALONE_DIR/$DISTRO_NAME
 
-    SERVICES_ACTIVE=$(get_services_active_list $DEPLOY_ACTIVE_LINK)
-    if [ -n "$SERVICES_ACTIVE" ]; then
-        gen_menu_items "Choose active service to disable it:\n" SERVICES_ACTIVE
+    make_docker_compose_yaml $DISTRO_ACTIVE_LINK $DISTRO_STANDALONE_DIR
+
+    cp mk/standalone-template.mk $DISTRO_STANDALONE_DIR/Makefile
+    if ! useremail=dummy traefikhost=dummy COMPOSE_FILE=$DISTRO_STANDALONE_DIR/docker-compose.yaml docker-compose config -q; then
+        msg hr    "$MENU_HR"
+        msg err  "Export to $DISTRO_STANDALONE_DIR/docker-compose.yaml fail"
+        msg norm ""
+        msg tips "Checkout this generated docker-compose.yaml for errors:"
+        msg tips "\$ cd $DISTRO_STANDALONE_DIR"
+        msg tips "\$ make check"
+        return
     fi
 
-    SERVICES_AVAILABLE=$(get_services_available_list $DEPLOY_ACTIVE_LINK)
+    cp $DISTRO_DIR/.env* $DISTRO_STANDALONE_DIR/ 2> /dev/null || true
+    cp $DISTRO_DIR/*.override.yaml $DISTRO_STANDALONE_DIR/ 2> /dev/null || true
+
+    # TODO: copy volumes(?) and secrets
+
+    msg info "Active project exported to $DISTRO_STANDALONE_DIR/"
+    msg info ""
+    msg tips "You can make tar.gz by:"
+    msg tips "\$ cd $DISTRO_STANDALONE_DIR"
+    msg tips "\$ make tgz"
+}
+
+############################################################################################
+menu_show_active_distributive() {
+    msg hr $MENU_HR
+    if [ ! -L $DISTRO_ACTIVE_LINK ]; then
+        msg warn "No active distributive"
+        msg hr $MENU_HR
+        return
+    fi
+
+    DISTRO_ACTIVE=$(basename $(readlink $DISTRO_ACTIVE_LINK))
+    if ! distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE warn; then
+        msg hr $MENU_HR
+    fi
+
+    printf "${C_MENU_TITLE}Active distributive is \"$DISTRO_ACTIVE\".${C_NONE} "
+
+    SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
+    if [ -n "$SERVICES_ACTIVE" ]; then
+        gen_menu_items "Choose active service to disable it:\n" \
+                       SERVICES_ACTIVE \
+                       "get_active_service_status "
+    fi
+
+    SERVICES_AVAILABLE=$(get_services_available_list $DISTRO_ACTIVE_LINK)
     if [ -n "$SERVICES_AVAILABLE" ]; then
         gen_menu_items "Choose available service to enable it:\n" SERVICES_AVAILABLE
     fi
@@ -166,42 +419,80 @@ menu_show_active_deployment() {
 
 menu_show_prompt() {
 
-    if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
-        DEPLOYS=$(get_deploys_list $DEPLOYS_DIR)
+    if [ ! -L $DISTRO_ACTIVE_LINK ]; then
+        ACTIVATE_DISTRO=$(get_distros_list $DISTROS_DIR)
     fi
 
+    ############ services choose list ##############
     case $MENU_MODE in
-        show-deploy-available)
-            if [ -L $DEPLOY_ACTIVE_LINK ]; then
-                DEPLOYS=$(get_deploys_list $DEPLOYS_DIR)
-                gen_menu_items "Available deployments. Choose deployment to make it active:\n" DEPLOYS
-            fi
+        create-distro)
+            COPY_DISTRO="$(get_distros_list $DISTROS_DIR)"
+            gen_menu_items "Available distributives. Choose distributive to make ${C_MSG_TIPS}copy${C_NONE}:\n" \
+                           COPY_DISTRO \
+                           "get_distro_status $DISTROS_DIR/"
+            PROMPT="${PROMPT} ${C_WHITE}m)${C_NONE} Make new distributive\n"
+            PROMPT="${PROMPT} ${C_WHITE}R)${C_NONE} Remove distributive\n"
         ;;
 
-        create-deploy)
-            COPY_DEPLOY="$(get_deploys_list $DEPLOYS_DIR)"
-            gen_menu_items "Available deployments. Choose deployment to make COPY of it:\n" COPY_DEPLOY
-            PROMPT="${PROMPT} m) Make new deployment\n"
-        ;;
-
-        *)
-            if [ ! -L $DEPLOY_ACTIVE_LINK ]; then
-                gen_menu_items "Available deployments. Choose deployment to make it active:\n" DEPLOYS
-            else
-                PROMPT="${PROMPT} l) List of available deployments to activate one\n"
-            fi
+        remove-distro)
+            REMOVE_DISTRO="$(get_distros_list $DISTROS_DIR)"
+            gen_menu_items "Available distributives. Choose distributive to ${C_MSG_WARN}remove${C_NONE}:\n" \
+                           REMOVE_DISTRO \
+                           "get_distro_status $DISTROS_DIR/"
         ;;
     esac
 
-    if [ "$MENU_MODE" != "create-deploy" ]; then
-        PROMPT="${PROMPT} c) Create new deployment\n"
+    if [ -L $DISTRO_ACTIVE_LINK ]; then
+        PROMPT="${PROMPT} ${C_WHITE}d)${C_NONE} Disable current distributive\n"
+        PROMPT="${PROMPT} ${C_WHITE}r)${C_NONE} Rename current distributive\n"
+        if distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE null; then
+            PROMPT="${PROMPT}\n ${C_WHITE}e$C_NONE) Export from current distributive to standalone distributive docker-compose.yaml\n"
+        fi
+        PROMPT="${PROMPT}\n"
     fi
 
-    if [ -L $DEPLOY_ACTIVE_LINK ]; then
-        PROMPT="${PROMPT} d) Disable current deployment\n"
-        PROMPT="${PROMPT} r) Rename current deployment\n"
+    ############ distributive choose list ##############
+    case $MENU_MODE in
+        choose-distro-available)
+            if [ -L $DISTRO_ACTIVE_LINK ]; then
+                ACTIVATE_DISTRO=$(get_distros_list $DISTROS_DIR)
+
+                PROMPT="${PROMPT}$MENU_HR_C\n\n"
+                # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
+                gen_menu_items "Available distributives. Choose distributive to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
+                               ACTIVATE_DISTRO \
+                               "get_distro_status $DISTROS_DIR/"
+            fi
+        ;;
+
+        *)
+            if [ -z "$MENU_MODE" -a ! -L $DISTRO_ACTIVE_LINK ]; then
+                # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
+                gen_menu_items "Available distributives. Choose distributive to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
+                               ACTIVATE_DISTRO \
+                               "get_distro_status $DISTROS_DIR/"
+            fi
+        ;;
+    esac
+    if [ -L $DISTRO_ACTIVE_LINK -a "$MENU_MODE" != "choose-distro-available" ]; then
+        PROMPT="${PROMPT}$MENU_HR_C\n\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}c)${C_NONE} Choose available distributive       [ mode ]\n\n"
     fi
-    PROMPT="${PROMPT} q) Quit\n\nChoose> "
+
+
+    ############ distributives modes list ##############
+    PROMPT="${PROMPT}$MENU_HR_C\n\n"
+    if [ "$MENU_MODE" != "create-distro" ]; then
+        PROMPT="${PROMPT} ${C_MENU_KEY}C)${C_NONE} Create new distributive             [ mode ]\n"
+    fi
+
+    if [ "$MENU_MODE" != "remove-distro" ]; then
+        PROMPT="${PROMPT} ${C_MENU_KEY}R)${C_NONE} Remove distributive                 [ mode ]\n"
+    fi
+
+    PROMPT="${PROMPT}\n ${C_MENU_KEY}q)${C_NONE} Quit\n"
+    PROMPT="${PROMPT} ${C_MENU_KEY}Enter)${C_NONE} Refresh screen or quit from mode\n"
+    PROMPT="${PROMPT}${C_MENU_KEY}Choose>${C_NONE} "
     unset MENU_MODE
 
     printf "$PROMPT"
@@ -209,38 +500,52 @@ menu_show_prompt() {
 
 # function handle MENU_ITEM_* variables and apply actions according them
 menu_numeric_index_action() {
-    for TYPE in DEPLOYS SERVICES_ACTIVE SERVICES_AVAILABLE COPY_DEPLOY; do
+    for TYPE in ACTIVATE_DISTRO SERVICES_ACTIVE SERVICES_AVAILABLE COPY_DISTRO REMOVE_DISTRO; do
         eval ITEM=\$MENU_ITEM_${TYPE}_$ANS
 
         if [ -z "$ITEM" ]; then
             continue
         fi
         case $TYPE in
-            DEPLOYS)
-                ln -fns $DEPLOYS_DIR/$ITEM $DEPLOY_ACTIVE_LINK
-                msg info "Deployment \"$ITEM\" active now"
+            ACTIVATE_DISTRO)
+                distro_make_active $DISTROS_DIR/$ITEM
             ;;
 
             SERVICES_ACTIVE)
-                if [ ! -L $DEPLOY_ACTIVE_LINK/$ITEM.yaml ]; then
+                ITEM=$(basename $ITEM)
+                if [ ! -L $DISTRO_ACTIVE_LINK/$ITEM ]; then
                     msg err "Active service \"$ITEM\" is not symolic link"
                     # FIXME: implement. "Do you want to remove it?"
                 else
-                    rm $DEPLOY_ACTIVE_LINK/$ITEM.yaml
+                    rm $DISTRO_ACTIVE_LINK/$ITEM
                     msg info "Active service \"$ITEM\" disabled"
                 fi
             ;;
 
             SERVICES_AVAILABLE)
-                ln -frs $SERVICES_AVAILABLE_DIR/$ITEM.yaml $DEPLOY_ACTIVE_LINK/
+                ln -frs $SERVICES_AVAILABLE_DIR/$ITEM $DISTRO_ACTIVE_LINK/
                 msg info "Available service \"$ITEM\" enabled"
             ;;
 
-            COPY_DEPLOY)
-                ask_deploy_name DEPLOY_NEW new
-                if [ -n "$DEPLOY_NEW" ]; then
-                    cp -ra $DEPLOYS_DIR/$ITEM $DEPLOYS_DIR/$DEPLOY_NEW
-                    msg info "Deployment \"$DEPLOY_NEW\" created from \"$ITEM\""
+            COPY_DISTRO)
+                ask_distro_name DISTRO_NEW new
+                if [ -n "$DISTRO_NEW" ]; then
+                    cp -ra $DISTROS_DIR/$ITEM $DISTROS_DIR/$DISTRO_NEW
+                    msg info "Distributive \"$DISTRO_NEW\" created from \"$ITEM\""
+                fi
+            ;;
+
+            REMOVE_DISTRO)
+                if ask_yes "Do you really want REMOVE \"$ITEM\"?"; then
+                    if [ -L $DISTRO_ACTIVE_LINK ]; then
+                        DISTRO_CURRENT=$(basename $(readlink $DISTRO_ACTIVE_LINK))
+                        if [ "$DISTRO_CURRENT" = "$ITEM" ]; then
+                            rm $DISTRO_ACTIVE_LINK
+                            msg info "Distributive \"$ITEM\" disabled"
+                        fi
+                    fi
+                    rm -r $DISTROS_DIR/$ITEM/
+                    msg info "Distributive \"$ITEM\" removed"
                 fi
             ;;
 
@@ -258,37 +563,48 @@ menu_main() {
 
     clear
     while menu_unset_variables
-          menu_show_active_deployment
+          menu_show_active_distributive
           menu_show_prompt
           read ANS
     do
         clear
 
         case $ANS in
-            [0-9]*) menu_numeric_index_action       ;;
-            l)      MENU_MODE=show-deploy-available ;;
-            c)      MENU_MODE=create-deploy         ;;
+            [0-9]*) menu_numeric_index_action         ;;
+            c)      MENU_MODE=choose-distro-available ;;
+            C)      MENU_MODE=create-distro           ;;
+            R)      MENU_MODE=remove-distro           ;;
             m)
-                ask_deploy_name DEPLOY_NEW new
-                if [ -n "$DEPLOY_NEW" ]; then
-                    mkdir -p $DEPLOYS_DIR/$DEPLOY_NEW
-                    ln -rs $DEPLOYS_DIR/../mk/deploys-template.mk $DEPLOYS_DIR/$DEPLOY_NEW/Makefile
+                ask_distro_name DISTRO_NEW new
+                if [ -n "$DISTRO_NEW" ]; then
+                    mkdir -p $DISTROS_DIR/$DISTRO_NEW
+                    ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
                     # TODO: create .env file
-                    msg info "Deployment \"$DEPLOY_NEW\" created"
+                    msg info "Distributive \"$DISTRO_NEW\" created"
+                    if [ -L $DISTRO_ACTIVE_LINK ]; then
+                        if ask_yes "Do you want make new distributive $DISTRO_NEW active?"; then
+                            distro_make_active $DISTROS_DIR/$DISTRO_NEW
+                        fi
+                    else
+                        distro_make_active $DISTROS_DIR/$DISTRO_NEW
+                    fi
                 fi
             ;;
             r)
-                ask_deploy_name DEPLOY_NEW new
-                if [ -n "$DEPLOY_NEW" ]; then
-                    DEPLOY_CURRENT=$(readlink $DEPLOY_ACTIVE_LINK)
-                    mv $DEPLOY_CURRENT $DEPLOYS_DIR/$DEPLOY_NEW
-                    ln -fns $DEPLOYS_DIR/$DEPLOY_NEW $DEPLOY_ACTIVE_LINK
-                    msg info "Deployment \"$(basename $DEPLOY_CURRENT)\" renamed to\"$DEPLOY_NEW\""
+                ask_distro_name DISTRO_NEW new
+                if [ -n "$DISTRO_NEW" ]; then
+                    DISTRO_CURRENT=$(readlink $DISTRO_ACTIVE_LINK)
+                    mv $DISTRO_CURRENT $DISTROS_DIR/$DISTRO_NEW
+                    ln -fns $DISTROS_DIR/$DISTRO_NEW $DISTRO_ACTIVE_LINK
+                    msg info "Distributive \"$(basename $DISTRO_CURRENT)\" renamed to\"$DISTRO_NEW\""
                 fi
             ;;
             d)
-                [ -L $DEPLOY_ACTIVE_LINK ] && rm $DEPLOY_ACTIVE_LINK
-                msg info "Active deployment \"$DEPLOY_ACTIVE\" disabled."
+                [ -L $DISTRO_ACTIVE_LINK ] && rm $DISTRO_ACTIVE_LINK
+                msg info "Active distributive \"$DISTRO_ACTIVE\" disabled."
+            ;;
+            e)
+                export_standalone_distributive $DISTRO_ACTIVE_LINK
             ;;
 
             q) exit ;;
@@ -299,9 +615,6 @@ menu_main() {
 }
 
 ################################
-
-# FIXME: check deploys/ exist
 check_active
-check_consistency
 
-menu_main $DEPLOYS
+menu_main

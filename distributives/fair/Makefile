@@ -1,1 +1,1 @@
-../../deploys/localhost/Makefile
+../../mk/distro-makefile.mk

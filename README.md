@@ -46,9 +46,9 @@ To Do (we re accepting Pull Requests, please join the project if you want to con
 * OCR Tesseract (OCR as a service)
 * Kibana 
 
-BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your deployment (see deploys folder) to start enabled services.  
+BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your distributive (see distributive/ folder) to start enabled services.
 
-if you want to enable some service, for example, INDRA, run this from ./deploys/your_domain_name where your_domain_name should correspond to your domain (default is localhost):
+if you want to enable some service, for example, INDRA, run this from ./distributives/your_domain_name where your_domain_name should correspond to your domain (default is localhost):
 ```
 ln -s ../../services-available/indra.yaml indra.yaml
 ```
