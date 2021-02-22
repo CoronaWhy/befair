@@ -28,7 +28,7 @@ C_MSG_INFO="$C_LGRN"
 C_MSG_TIPS="$C_LYEL"
 C_MSG_HR="$C_CYAN"
 
-MENU_HR="==================================================================================="
+MENU_HR="="
 MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
 
 msg() {
@@ -40,7 +40,7 @@ msg() {
         norm) printf "$C_MSG_NORM%s$C_NONE\n" "$*" >&2 ;;
         info) printf "$C_MSG_INFO%s$C_NONE\n" "$*" >&2 ;;
         tips) printf "$C_LYEL%s$C_NONE\n" "$*" >&2 ;;
-        hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" >&2 ;;
+        hr)   printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' "$MENU_HR" ;; 
         null) ;;
         *)    printf "%s\n" "$*" ;;
     esac
