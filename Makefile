@@ -37,12 +37,11 @@ check-all:
 		fi;                                                        \
         $(MAKE) menuconfig;                                        \
 	elif [ ! -e $(DISTRO_ACTIVE_LINK) ]; then                      \
-			echo "$(DISTRO_ACTIVE_LINK) is brocken symbolic link." \
-                "It's should be link to active distributive setup" >&2; \
-			exit 1;                                               \
-		fi; \
+		echo "$(DISTRO_ACTIVE_LINK) is brocken symbolic link." \
+			"It's should be link to active distributive setup" >&2; \
+		exit 1;                                               \
     fi; \
-	[ -L $(DISTRO_ACTIVE_LINK) ] && $(MAKE) -C $(DISTRO_ACTIVE_DIR) $@
+	[ -L $(DISTRO_ACTIVE_LINK) ] && $(MAKE) -C $(DISTRO_ACTIVE_LINK) $@
 .PHONY: %
 
 # vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix
