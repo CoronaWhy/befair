@@ -3,7 +3,7 @@
 BASEDIR=$(realpath $(dirname $(realpath $0))/..)
 cd $BASEDIR
 
-DISTROS_DIR=distributives
+DISTROS_DIR=distro
 DISTRO_ACTIVE_LINK=distributive-active
 SERVICES_AVAILABLE_DIR=services-available
 STANDALONE_DIR=exports
