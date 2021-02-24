@@ -35,9 +35,6 @@ C_MSG_INFO="$C_LGRN"
 C_MSG_TIPS="$C_LYEL"
 C_MSG_HR="$C_CYAN"
 
-MENU_HR="==================================================================================="
-MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
-
 msg() {
     TYPE=$1
     shift
@@ -283,9 +280,10 @@ clear_variables_by_prefix() {
     done
 }
 
-menu_unset_variables() {
+menu_prepare_vars() {
     unset PROMPT MENU_INDEX
     clear_variables_by_prefix MENU_ITEM_
+    menu_set_hr_param
 }
 
 ask_yes() {
@@ -530,6 +528,13 @@ menu_is_active_item() {
     esac
 }
 
+# Set the thematic break (horizontal rule) in width of screen
+menu_set_hr_param() {
+    COLUMNS=$(tput cols)
+    MENU_HR="$(printf '%*s\n' "$COLUMNS" '' | tr ' ' =)"
+    MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
+}
+
 menu_show_active_distributive() {
     msg hr $MENU_HR
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
@@ -707,7 +712,7 @@ menu_main() {
     CONTINUE_WRONG="eval { echo Wrong input; continue; }"
 
     clear
-    while menu_unset_variables
+    while menu_prepare_vars
           menu_show_active_distributive
           menu_show_prompt
           read ANS
