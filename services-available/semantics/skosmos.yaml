@@ -14,8 +14,8 @@ services:
       ports:
        - 3030:3030
       volumes:
-        - ./var/skosmos/config/config.ttl:/fuseki/config.ttl
-        - ./var/skosmos/config/fuseki-server:/jena-fuseki/fuseki-server
+        - ./source/skosmos/config/config.ttl:/fuseki/config.ttl
+        - ./source/skosmos/config/fuseki-server:/jena-fuseki/fuseki-server
         - ./var/skosmos/data/fuseki-data:/fuseki/databases
         - ./var/skosmos/data/fuseki-input:/data
       labels:
@@ -26,12 +26,11 @@ services:
         - "traefik.http.routers.fuseki.tls.certresolver=myresolver"
 
     skosmos:
-      networks:
-        - traefik
       container_name: skosmos
-      build: .
+      #build: .
+      image: coronawhy/skosmos:latest
       volumes:
-        - ./skosmos/Skosmos:/var/www/html
+        - ./source/Skosmos:/var/www/html
       ports:
         - 8000:80
       labels:
