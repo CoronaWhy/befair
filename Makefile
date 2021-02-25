@@ -1,10 +1,11 @@
 include mk/helpers.mk
 
-DISTRO_ACTIVE_LINK=distributive-active
+DISTROS_DIR=distros
+DISTRO_ACTIVE_LINK=distro-active
 
 # help: show all targets with tag 'help'
 help:
-	@$(call generate-help,$(MAKEFILE_LIST) mk/common.mk)
+	@$(call generate-help,$(MAKEFILE_LIST) mk/distro-common.mk)
 .PHONY: help
 
 # help: run configurator
@@ -17,9 +18,9 @@ menuconfig-docker:
 	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
 .PHONY: menuconfig-docker
 
-# help: check all distributives consistency
+# help: check all distros consistency
 check-all:
-	@for DIR in distro/*; do               \
+	@for DIR in $(DISTROS_DIR)/*; do               \
 		printf "=============================";   \
 		printf " Checking %-20s " $$DIR;          \
 		printf "=============================\n"; \
@@ -32,13 +33,13 @@ check-all:
 	@if [ ! -L $(DISTRO_ACTIVE_LINK) ]; then                       \
 		if [ -e $(DISTRO_ACTIVE_LINK) ]; then                      \
 			echo "$(DISTRO_ACTIVE_LINK) is not a symbolic link."   \
-                "It should be a link to an active distributive setup" >&2; \
+                "It should be a link to an active distro setup" >&2; \
 			exit 1;                                                \
 		fi;                                                        \
         $(MAKE) menuconfig;                                        \
 	elif [ ! -e $(DISTRO_ACTIVE_LINK) ]; then                      \
 			echo "$(DISTRO_ACTIVE_LINK) is brocken symbolic link." \
-                "It should be a link to an active distributive setup" >&2; \
+                "It should be a link to an active distro setup" >&2; \
 			exit 1;                                               \
 		fi; \
     fi; \

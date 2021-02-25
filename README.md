@@ -46,9 +46,9 @@ To Do (we re accepting Pull Requests, please join the project if you want to con
 * OCR Tesseract (OCR as a service)
 * Kibana 
 
-BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your distributive (see distro/ folder) to start enabled services.
+BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your distro (see distros/ folder) to start enabled services.
 
-if you want to enable some service, for example, INDRA, run this from ./distro/your_distributive_name where your_distributive_name should correspond to your project name or domain (default is localhost):
+if you want to enable some service, for example, INDRA, run this from ./distros/your_distro_name where your_distro_name should correspond to your project name or domain (default is localhost):
 ```
 ln -s ../../services-available/indra.yaml indra.yaml
 ```
@@ -77,16 +77,16 @@ newgrp docker
 
 If you see the message: "ERROR: Network traefik declared as external, but could not be found", please create the network manually using `docker network create traefik` and try again.
 
-After Docker is installed you can check the consistency of all BeFAIR distributives:
+After Docker is installed you can check the consistency of all BeFAIR distros:
 ```
 git clone https://github.com/CoronaWhy/befair
 cd befair
 make check-all
 ```
 
-You can find all available installations in /distro folder. Different distributives are suitable for various research communities.
+You can find all available installations in distros/ folder. Different distros are suitable for various research communities.
 
-Choose some distributive, for example, "fair", and start/stop all services with commands:
+Choose some distro, for example, "fair", and start/stop all services with commands:
 ```
 cd fair
 make up
@@ -101,7 +101,7 @@ make superset
 
 # Menuconfig
 
-BeFAIR has a tool to manage all services, it's located in bin/menuconfig. You can enable/disable both services and distributives there in a convinient way. 
+BeFAIR has a tool to manage all services, it's located in bin/menuconfig. You can enable/disable both services and distros there in a convinient way.
 
 # Citation for the academic use
 

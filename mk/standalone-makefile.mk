@@ -1,10 +1,10 @@
 #########################################################################################
-# This file part of BeFAIR (https://github.com/CoronaWhy/befair) standalone distributive
+# This file part of BeFAIR (https://github.com/CoronaWhy/befair) standalone distro
 #########################################################################################
 
 help:
-	@printf "tgz                  - create tar.gz with distributive\n"
-	@printf "check                - checking consistency of standalone distributive\n\n"
+	@printf "tgz                  - create tar.gz with distro\n"
+	@printf "check                - checking consistency of standalone distro\n\n"
 	@printf "up                   - 'docker-compose up -d'\n"
 	@printf "debug                - 'docker-compose up'\n"
 	@printf "down                 - 'docker-compose down'\n"
@@ -22,7 +22,7 @@ tgz:
 OK   := $(shell printf "\"\e[1;32mok\e[0m\"")
 FAIL := $(shell printf "\"\e[1;31mfail\e[0m\"")
 
-# help: checking consistency of distributive
+# help: checking consistency of distro
 check:
 	@printf "Checking 'docker-compose config -q' syntax - "
 	@useremail=dummy traefikhost=dummy docker-compose config -q && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
@@ -35,7 +35,7 @@ check:
 		|| { echo $(FAIL)'. Need at least one not override.yaml'; $(CHECK_EXIT) }
 
 	@printf 'Checking not existing *.yml files - '
-	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from distributive'; $(CHECK_EXIT) } || echo $(OK)
+	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from distro'; $(CHECK_EXIT) } || echo $(OK)
 
 .PHONY: check
 
