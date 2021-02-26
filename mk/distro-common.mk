@@ -42,12 +42,18 @@ var-show-all:
 
 # Find all *.mk files which corrspond to *.yaml files.
 # For example if solr.yaml exist in distro directory, search for
-# services-available/solr.yaml and include it
-$(foreach mk,$(addsuffix .mk,$(basename $(wildcard *.yaml))), \
-    $(eval SERVICE_INCLUDE_MK += $(call search-parent-mk,services-available/$(mk))) \
+# solr.mk which in symbolic link (usually in service-avaliable/) ...
+$(foreach mk,$(wildcard $(addsuffix .mk,$(basename $(realpath $(wildcard *.yaml))))), \
+    $(eval SERVICE_INCLUDE_MK += $(mk)) \
 )
+
+# ...  or current distro directory.
+$(foreach mk,$(abspath $(wildcard $(addsuffix .mk,$(basename $(wildcard *.yaml))))), \
+    $(eval SERVICE_INCLUDE_MK += $(mk)) \
+)
+
 $(foreach mk,$(SERVICE_INCLUDE_MK), \
-    $(eval include $(mk))\
+    $(eval -include $(mk))\
 )
 
 OK   := $(shell printf "\"\e[1;32mok\e[0m\"")
