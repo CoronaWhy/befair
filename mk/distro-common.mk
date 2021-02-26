@@ -122,25 +122,6 @@ debug:
 	docker-compose up
 .PHONY: debug
 
-airflow:
-	docker-compose run webserver db init
-	# not secure, just for dev
-	chmod -R 777 ./var/airflow
-	docker-compose run webserver users create -r Admin -u admin -e team@coronawhy.org -f admin -l user -p admin
-.PHONY: airflow
-
-superset:
-        # clone latest version ready for distro
-	git clone http://github.com/apache/superset
-.PHONY: superset
-
-# init and start everything
-init:
-	docker-compose run webserver db init
-	docker-compose run webserver users create -r Admin -u admin -e team@coronawhy.org -f admin -l user -p admin
-	docker-compose up
-.PHONY: init
-
 # help: 'docker-compose up' with dummy override entrypoint for dataverse. dataverse need to be run manual
 up-manual:: COMPOSE_FILE=$(COMPOSE_FILE):/tmp/entrypoint.override.yaml
 up-manual::

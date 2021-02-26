@@ -88,15 +88,9 @@ You can find all available installations in distros/ folder. Different distros a
 
 Choose some distro, for example, "fair", and start/stop all services with commands:
 ```
-cd fair
+cd distros/fair
 make up
 make down
-```
-
-Warning: please use init commands for Apache Airflow and Apache Superset:
-```
-make airflow
-make superset
 ```
 
 # Menuconfig
