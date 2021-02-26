@@ -8,8 +8,13 @@
  - [menuconfig] handle .env files in
 
  - [menuconfig] add command from command line. like: menuconfig export
+    - test export all distros
+        - use dejagnu
+ - [menuconfig] view/edit services
+
  - make export, make export-tgz
  - make menuconfig from distro directory and exports/(?)
+
 
  + services-avalable/*.mk
  - allow run several distros in same host
@@ -34,3 +39,5 @@
  - switch between default service and distro specific and/or customized service
     - backup/remove service customizations 
 
+ - make log upper menu. remove clear. before drawing menu store cursor,
+     after user command entered, clear part of terminal with menu.
