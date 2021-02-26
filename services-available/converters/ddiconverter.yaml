@@ -1,0 +1,12 @@
+version: '3.7'
+services:
+    ddiconverter:
+      image: coronawhy/ddi-converter-tool
+      ports:
+        - "8520:8520"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ddiconverter.rule=Host(`coapi.${traefikhost}`)"
+        - "traefik.http.services.ddiconverter.loadbalancer.server.port=8520"
+        - "traefik.http.routers.ddiconverter.tls=true"
+        - "traefik.http.routers.ddiconverter.tls.certresolver=myresolver"
