@@ -239,7 +239,7 @@ gen_menu_items() {
     PROMPT="${PROMPT}\n"
 }
 
-# $1: variable name to return distro namw
+# $1: variable name to return distro name
 # $2: optional parameter "new", to check if distro already exist
 ask_distro_name() {
 
@@ -502,9 +502,9 @@ create_distro() {
         mkdir -p $DISTROS_DIR/$DISTRO_NEW
         ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
         # TODO: create .env file
-        msg info "Distributive \"$DISTRO_NEW\" created"
+        msg info "Distro \"$DISTRO_NEW\" created"
         if [ -L $DISTRO_ACTIVE_LINK ]; then
-            if ask_yes "Do you want make new distributive $DISTRO_NEW active?"; then
+            if ask_yes "Do you want make new distro $DISTRO_NEW active?"; then
                 distro_make_active $DISTROS_DIR/$DISTRO_NEW
             else
                 [ $? = 2 ] && return # cancel
@@ -596,7 +596,7 @@ menu_show_prompt() {
         PROMPT="${PROMPT} ${C_MENU_KEY}d${C_NONE}) Disable current distro\n"
         PROMPT="${PROMPT} ${C_MENU_KEY}r${C_NONE}) Rename current distro\n"
         if distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE null; then
-            PROMPT="${PROMPT}\n ${C_MENU_KEY}e$C_NONE) Export from current distro to standalone distributive docker-compose.yaml\n"
+            PROMPT="${PROMPT}\n ${C_MENU_KEY}e$C_NONE) Export from current distro to a standalone docker-compose.yaml\n"
         fi
         PROMPT="${PROMPT}\n"
     fi
