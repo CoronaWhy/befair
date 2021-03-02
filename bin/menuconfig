@@ -756,7 +756,7 @@ menu_main() {
             ;;
             e)
                 [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
-                export_standalone_distributive $DISTRO_ACTIVE_LINK
+                export_standalone_distro $DISTRO_ACTIVE_LINK
             ;;
 
             q) exit ;;
