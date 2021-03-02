@@ -1,5 +1,5 @@
-distributives/*/var/
-distributives/*/*/var/
+distros/*/var/
+distros/*/*/var/
 
 # vim swap
 [._]*.s[a-v][a-z]

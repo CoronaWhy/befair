@@ -27,5 +27,5 @@ search-parent-mk = \
     )
 
 $(call include-parent-mk,mk/helpers.mk)
-$(call include-parent-mk,mk/common.mk)
+$(call include-parent-mk,mk/distro-common.mk)
 

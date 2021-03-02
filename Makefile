@@ -1,10 +1,11 @@
 include mk/helpers.mk
 
-DISTRO_ACTIVE_LINK=distributive-active
+DISTROS_DIR=distros
+DISTRO_ACTIVE_LINK=distro-active
 
 # help: show all targets with tag 'help'
 help:
-	@$(call generate-help,$(MAKEFILE_LIST) mk/common.mk)
+	@$(call generate-help,$(MAKEFILE_LIST) mk/distro-common.mk)
 .PHONY: help
 
 # help: run configurator
@@ -17,9 +18,9 @@ menuconfig-docker:
 	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
 .PHONY: menuconfig-docker
 
-# help: check all distributives consistency
+# help: check all distros consistency
 check-all:
-	@for DIR in distributives/*; do               \
+	@for DIR in $(DISTROS_DIR)/*; do               \
 		printf "=============================";   \
 		printf " Checking %-20s " $$DIR;          \
 		printf "=============================\n"; \

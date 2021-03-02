@@ -4,7 +4,7 @@ BeFAIR (Be Findable, Accessible, Interoperable, Reusable) Open Science Framework
 BeFAIR is a Common Distributed Research Infrastructure where users can add and run any tools and components by themselves using Debian's way of managing services.
 All selected services should be available on a selected subdomain name and could be easily integrated together with [Dataverse](https://dataverse.org), BeFAIR data repository.
 
-BeFAIR distributive was designed as out-of-the-box Distributed Networked Infrastructure that any research community can install with one command just as normal Operating System. The roadmap includes releases containing Open Data available for the different sciences, however [COVID-19 Data Hub](http://datasets.coronawhy.org) is our current priority.
+BeFAIR was designed as out-of-the-box Distributed Networked Infrastructure that any research community can install with one command just as normal Operating System. The roadmap includes releases containing Open Data available for the different sciences, however [COVID-19 Data Hub](http://datasets.coronawhy.org) is our current priority.
 
 # Acknowledgements
 BeFAIR infrastructure is standing the Shoulder of Giants. Please find below the acknowledgements for resources and contributions from the finished on ongoing projects.
@@ -35,9 +35,9 @@ The list of services integrated in BeFAIR:
 * [INDRA](https://indralab.github.io) (INDRA REST API https://indra.readthedocs.io/en/latest/rest_api.html)
 * [Apache Superset](https://github.com/apache/superset) (in progress) 
 * [FAIRDataPoint](https://github.com/FAIRDataTeam/FAIRDataPoint) (in progress)
+* CoronaWhy API (FastAPI with OpenAPI spec)
 
 To Do (we re accepting Pull Requests, please join the project if you want to contribute!):
-* CoronaWhy API (FastAPI with OpenAPI spec)
 * Elasticsearch 
 * SPARQL endpoint (Virtuoso as a service)
 * Grlc (SPARQL queries into RESTful APIs convertor)
@@ -46,9 +46,9 @@ To Do (we re accepting Pull Requests, please join the project if you want to con
 * OCR Tesseract (OCR as a service)
 * Kibana 
 
-BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your distributive (see distributive/ folder) to start enabled services.
+BeFAIR is using Traefik load balancer and proxy service. Please define traefikhost in the configuration of your distro (see distros/ folder) to start enabled services.
 
-if you want to enable some service, for example, INDRA, run this from ./distributives/your_domain_name where your_domain_name should correspond to your domain (default is localhost):
+if you want to enable some service, for example, INDRA, run this from ./distros/your_distro_name where your_distro_name should correspond to your project name or domain (default is localhost):
 ```
 ln -s ../../services-available/indra.yaml indra.yaml
 ```
@@ -77,24 +77,25 @@ newgrp docker
 
 If you see the message: "ERROR: Network traefik declared as external, but could not be found", please create the network manually using `docker network create traefik` and try again.
 
-After Docker is installed you can run BeFAIR:
+After Docker is installed you can check the consistency of all BeFAIR distros:
 ```
 git clone https://github.com/CoronaWhy/befair
 cd befair
-cd distributives
+make check-all
 ```
 
-You'll find a lot of distributives for the different research communities there. Choose some of the, for example, "fair", and start with command:
+You can find all available installations in distros/ folder. Different distros are suitable for various research communities.
+
+Choose some distro, for example, "fair", and start/stop all services with commands:
 ```
-cd fair
+cd distros/fair
 make up
+make down
 ```
 
-Warning: please use init commands for Apache Airflow and Apache Superset:
-```
-make airflow
-make superset
-```
+# Menuconfig
+
+BeFAIR has a tool to manage all services, it's located in bin/menuconfig. You can enable/disable both services and distros there in a convinient way.
 
 # Citation for the academic use
 

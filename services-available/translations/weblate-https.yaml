@@ -1,0 +1,36 @@
+version: '3.7'
+services:
+    weblate:
+      image: weblate/weblate:4.5-1
+      privileged: true
+      ports:
+        - 8095:8080
+      volumes:
+        - ./var/weblate/weblate-data:/app/data
+      env_file: .env_weblate
+      restart: always
+      depends_on:
+        - database
+        - cache
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.weblate.rule=Host(`weblate.${traefikhost}`)"
+        - "traefik.http.routers.weblate.tls=true"
+        - "traefik.http.services.weblate.loadbalancer.server.port=8080"
+        - "traefik.http.routers.weblate.tls.certresolver=myresolver"
+    database:
+      image: postgres:9.6-alpine
+      privileged: true
+      ports:
+        - 5431:5432
+      env_file: .env_weblate
+      volumes:
+        - ./var/weblate/postgres-data:/var/lib/postgresql/data
+      restart: always
+    cache:
+      image: redis:4-alpine
+      privileged: true
+      restart: always
+      command: ["redis-server", "--appendonly", "yes"]
+      volumes:
+        - ./redis-data:/data
