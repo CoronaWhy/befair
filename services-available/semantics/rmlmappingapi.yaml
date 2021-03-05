@@ -1,0 +1,13 @@
+version: '3.7'
+services:
+    rmlapi:
+      image: coronawhy/rmlmapper-webapi:latest
+      ports:
+        - "8004:4000"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.rmlapi.rule=Host(`rmlapi.${traefikhost}`)"
+        - "traefik.http.services.rmlapi.loadbalancer.server.port=4000"
+        - "traefik.http.routers.rmlapi.tls=true"
+        - "traefik.http.routers.rmlapi.tls.certresolver=myresolver"  
+
