@@ -11,6 +11,12 @@ STANDALONE_DIR=exports
 
 MENU_COL1_WIDHT=35
 
+# clear screen at startup
+MENU_STARTUP_CLEAR=false
+
+# enable keeping log of events
+MENU_LOG_ENABLED=false
+
 ################################
 
 # Colors
@@ -515,6 +521,53 @@ create_distro() {
     fi
 }
 
+if $MENU_LOG_ENABLED && which tput > /dev/null 2>&1; then
+
+    # Set the thematic break (horizontal rule) in width of screen
+    menu_set_hr_param() {
+        COLUMNS=$(tput cols)
+        MENU_HR="$(printf '%*s\n' "$COLUMNS" '' | tr ' ' =)"
+        MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
+    }
+
+    menu_screen_save_param() {
+        #SCREEN_LINE=$(tput lines)
+        #NEED_LINES=$()
+
+        # save current cursor position
+        #tput sc
+        
+        # insert how many lines, how menu need
+        #echo $PROMPT | sed 's/.*//'
+        true
+    }
+
+    menu_screen_restore() {
+        #tput rc # restore cursor
+
+        MENU_LINE_NUM=$(printf "$PROMPT" | wc -l)
+        # move cursor up
+        tput cuu $(( $MENU_LINE_NUM + 1))
+        tput ed # clear from cursor to end of screen
+        echo $MENU_LINE_NUM > /tmp/delme.txt
+        echo "$PROMPT" >> /tmp/delme.txt
+    }
+else
+    menu_set_hr_param() {
+        COLUMNS=${COLUMNS:-80}
+        MENU_HR="$(printf '%*s\n' "$COLUMNS" '' | tr ' ' =)"
+        MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
+    }
+
+    menu_screen_save_param() {
+        true
+    }
+
+    menu_screen_restore() {
+        clear
+    }
+fi
+
 ############################################################################################
 menu_add_item() {
     PROMPT="${PROMPT} ${C_MENU_KEY}$1)${C_NONE} $2\n"
@@ -528,28 +581,23 @@ menu_is_active_item() {
     esac
 }
 
-# Set the thematic break (horizontal rule) in width of screen
-menu_set_hr_param() {
-    COLUMNS=$(tput cols)
-    MENU_HR="$(printf '%*s\n' "$COLUMNS" '' | tr ' ' =)"
-    MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
-}
+menu_gen_prompt_active_distributive() {
 
-menu_show_active_distro() {
-
-    msg hr $MENU_HR
+    PROMPT="${PROMPT}$MENU_HR_C\n"
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
-        msg warn "No active distro"
-        msg hr $MENU_HR
+        PROMPT="${PROMPT}${C_MSG_WARN}No active distro${C_NONE}\n"
+        PROMPT="${PROMPT}$MENU_HR_C\n"
         return
     fi
 
     DISTRO_ACTIVE=$(basename $(readlink $DISTRO_ACTIVE_LINK))
-    if ! distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE warn; then
-        msg hr $MENU_HR
+    MENU_BUILD_WARN=$(distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE warn)
+
+    if [ -n "$MENU_BUILD_WARN" ]; then
+        PROMPT="${PROMPT}$MENU_BUILD_WARN\n$MENU_HR_C\n"
     fi
 
-    printf "${C_MENU_TITLE}Active distro is \"${C_LGRN}$DISTRO_ACTIVE${C_MENU_TITLE}\".${C_NONE} "
+    PROMPT="${PROMPT}${C_MENU_TITLE}Active distro is \"${C_LGRN}$DISTRO_ACTIVE${C_MENU_TITLE}\".${C_NONE} "
 
     SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
     if [ -n "$SERVICES_ACTIVE" ]; then
@@ -566,7 +614,9 @@ menu_show_active_distro() {
     fi
 }
 
-menu_show_prompt() {
+menu_gen_prompt() {
+
+    menu_gen_prompt_active_distributive
 
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
         ACTIVATE_DISTRO=$(get_distros_list $DISTROS_DIR)
@@ -644,7 +694,9 @@ menu_show_prompt() {
     PROMPT="${PROMPT} ${C_MENU_KEY}Enter)${C_NONE} Refresh screen or quit from mode\n"
     PROMPT="${PROMPT}${C_MENU_KEY}Choose>${C_NONE} "
     unset MENU_MODE
+}
 
+menu_show() {
     printf "$PROMPT"
 }
 
@@ -712,16 +764,19 @@ menu_numeric_index_action() {
 menu_main() {
     CONTINUE_WRONG="eval { echo Wrong input; continue; }"
 
-    clear
+    $MENU_STARTUP_CLEAR && clear
+
     while menu_prepare_vars
-          menu_show_active_distro
-          menu_show_prompt
+          menu_gen_prompt
+          menu_screen_save_param
+          menu_show
           read ANS
     do
-        clear
+        menu_screen_restore
 
         case $ANS in
             [0-9]*) menu_numeric_index_action    ;;
+            z)  echo $MENU_LINE_NUM;;
             c)
                 menu_is_active_item choose-distro-available || $CONTINUE_WRONG
                 MENU_MODE=choose-distro-available
