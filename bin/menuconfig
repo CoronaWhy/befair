@@ -39,12 +39,12 @@ msg() {
     TYPE=$1
     shift
     case "$TYPE" in
-        err)  printf "$C_MSG_ERR%s$C_NONE\n" "$*" >&2 ;;
-        warn) printf "$C_MSG_WARN%s$C_NONE\n" "$*" >&2 ;;
-        norm) printf "$C_MSG_NORM%s$C_NONE\n" "$*" >&2 ;;
-        info) printf "$C_MSG_INFO%s$C_NONE\n" "$*" >&2 ;;
-        tips) printf "$C_LYEL%s$C_NONE\n" "$*" >&2 ;;
-        hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" >&2 ;;
+        err)  printf "$C_MSG_ERR%s$C_NONE\n" "$*" ;;
+        warn) printf "$C_MSG_WARN%s$C_NONE\n" "$*" ;;
+        norm) printf "$C_MSG_NORM%s$C_NONE\n" "$*" ;;
+        info) printf "$C_MSG_INFO%s$C_NONE\n" "$*" ;;
+        tips) printf "$C_LYEL%s$C_NONE\n" "$*" ;;
+        hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" ;;
         null) ;;
         *)    printf "%s\n" "$*" ;;
     esac
