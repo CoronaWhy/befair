@@ -599,19 +599,27 @@ menu_gen_prompt_active_distributive() {
 
     PROMPT="${PROMPT}${C_MENU_TITLE}Active distro is \"${C_LGRN}$DISTRO_ACTIVE${C_MENU_TITLE}\".${C_NONE} "
 
-    SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
-    if [ -n "$SERVICES_ACTIVE" ]; then
-        gen_menu_items "Choose active service to ${C_MSG_TIPS}disable${C_NONE}:\n" \
-                       SERVICES_ACTIVE \
-                       "get_active_service_status "
-    fi
-
-    SERVICES_AVAILABLE=$(get_services_available_list $DISTRO_ACTIVE_LINK)
-    if [ -n "$SERVICES_AVAILABLE" ]; then
-        gen_menu_items "Choose available service to ${C_MSG_TIPS}enable${C_NONE}:\n" \
-                       SERVICES_AVAILABLE \
-                       "get_service_info $SERVICES_AVAILABLE_DIR/"
-    fi
+    [ -z "$MENU_MODE" ] && MENU_MODE=disable-service
+    case $MENU_MODE in
+        disable-service)
+            SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
+            if [ -n "$SERVICES_ACTIVE" ]; then
+                gen_menu_items "Choose active service to ${C_MSG_TIPS}disable${C_NONE}:\n" \
+                               SERVICES_ACTIVE \
+                               "get_active_service_status "
+                menu_add_item e "Enable service                      [ mode ]" enable-service
+            fi
+        ;;
+        enable-service)
+            SERVICES_AVAILABLE=$(get_services_available_list $DISTRO_ACTIVE_LINK)
+            if [ -n "$SERVICES_AVAILABLE" ]; then
+                gen_menu_items "Choose available service to ${C_MSG_TIPS}enable${C_NONE}:\n" \
+                               SERVICES_AVAILABLE \
+                               "get_service_info $SERVICES_AVAILABLE_DIR/"
+                menu_add_item d "Disable service                     [ mode ]" disable-service
+            fi
+        ;;
+    esac
 }
 
 menu_gen_prompt() {
@@ -643,10 +651,10 @@ menu_gen_prompt() {
     esac
 
     if [ -L $DISTRO_ACTIVE_LINK ]; then
-        PROMPT="${PROMPT} ${C_MENU_KEY}d${C_NONE}) Disable current distro\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}D${C_NONE}) Disable current distro\n"
         PROMPT="${PROMPT} ${C_MENU_KEY}r${C_NONE}) Rename current distro\n"
         if distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE null; then
-            PROMPT="${PROMPT}\n ${C_MENU_KEY}e$C_NONE) Export from current distro to a standalone docker-compose.yaml\n"
+            PROMPT="${PROMPT}\n ${C_MENU_KEY}E$C_NONE) Export from current distro to a standalone docker-compose.yaml\n"
         fi
         PROMPT="${PROMPT}\n"
     fi
@@ -777,22 +785,36 @@ menu_main() {
         case $ANS in
             [0-9]*) menu_numeric_index_action    ;;
             z)  echo $MENU_LINE_NUM;;
+            e)
+                menu_is_active_item enable-service || $CONTINUE_WRONG
+                MENU_MODE=enable-service
+            ;;
+
+            d)
+                menu_is_active_item disable-service || $CONTINUE_WRONG
+                MENU_MODE=disable-service
+            ;;
+
             c)
                 menu_is_active_item choose-distro-available || $CONTINUE_WRONG
                 MENU_MODE=choose-distro-available
             ;;
+
             C)
                 menu_is_active_item create-distro || $CONTINUE_WRONG
                 MENU_MODE=create-distro
             ;;
+
             R)
                 menu_is_active_item remove-distro || $CONTINUE_WRONG
                 MENU_MODE=remove-distro
             ;;
+
             m)
                 menu_is_active_item make-new-distro || $CONTINUE_WRONG
                 create_distro
             ;;
+
             r)
                 [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
 
@@ -804,12 +826,14 @@ menu_main() {
                     msg info "Distro \"$(basename $DISTRO_CURRENT)\" renamed to\"$DISTRO_NEW\""
                 fi
             ;;
-            d)
+
+            D)
                 [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
                 rm $DISTRO_ACTIVE_LINK
                 msg info "Active distro \"$DISTRO_ACTIVE\" disabled."
             ;;
-            e)
+
+            E)
                 [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
                 export_standalone_distro $DISTRO_ACTIVE_LINK
             ;;
