@@ -53,7 +53,7 @@ msg() {
         norm) printf "%s $C_MSG_NORM%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
         info) printf "%s $C_MSG_INFO%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
         tips) printf "%s $C_LYEL%s$C_NONE\n"      $(date +$MENU_LOG_TIME_FMT) "$*" ;;
-        hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" ;;
+        hr)   printf "$MENU_HR_C\n" ;;
         null) ;;
         *)    printf "%s\n" "$*" ;;
     esac
@@ -484,7 +484,7 @@ export_standalone_distro() {
 
     cp mk/standalone-makefile.mk $DISTRO_STANDALONE_DIR/Makefile
     if ! useremail=dummy traefikhost=dummy COMPOSE_FILE=$DISTRO_STANDALONE_DIR/docker-compose.yaml docker-compose config -q; then
-        msg hr    "$MENU_HR"
+        msg hr
         msg err  "Export to $DISTRO_STANDALONE_DIR/docker-compose.yaml fail"
         msg norm ""
         msg tips "Checkout this generated docker-compose.yaml for errors:"
@@ -577,6 +577,10 @@ menu_add_item() {
     MENU_ACTIVE_ELEMENT="$MENU_ACTIVE_ELEMENT $3"
 }
 
+menu_add_hr() {
+    PROMPT="${PROMPT}$MENU_HR_C\n"
+}
+
 menu_is_active_item() {
     case $MENU_ACTIVE_ELEMENT in
         *$1*) return 0;;
@@ -586,10 +590,10 @@ menu_is_active_item() {
 
 menu_gen_prompt_active_distributive() {
 
-    PROMPT="${PROMPT}$MENU_HR_C\n"
+    menu_add_hr
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
         PROMPT="${PROMPT}${C_MSG_WARN}No active distro${C_NONE}\n"
-        PROMPT="${PROMPT}$MENU_HR_C\n"
+        menu_add_hr
         return
     fi
 
@@ -597,7 +601,8 @@ menu_gen_prompt_active_distributive() {
     MENU_BUILD_WARN=$(distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE warn)
 
     if [ -n "$MENU_BUILD_WARN" ]; then
-        PROMPT="${PROMPT}$MENU_BUILD_WARN\n$MENU_HR_C\n"
+        PROMPT="${PROMPT}$MENU_BUILD_WARN\n"
+        menu_add_hr
     fi
 
     PROMPT="${PROMPT}${C_MENU_TITLE}Active distro is \"${C_LGRN}$DISTRO_ACTIVE${C_MENU_TITLE}\".${C_NONE} "
@@ -610,6 +615,7 @@ menu_gen_prompt_active_distributive() {
                 gen_menu_items "Choose active service to ${C_MSG_TIPS}disable${C_NONE}:\n" \
                                SERVICES_ACTIVE \
                                "get_active_service_status "
+                menu_add_hr
                 menu_add_item e "Enable service                      [ mode ]" enable-service
             fi
         ;;
@@ -619,6 +625,7 @@ menu_gen_prompt_active_distributive() {
                 gen_menu_items "Choose available service to ${C_MSG_TIPS}enable${C_NONE}:\n" \
                                SERVICES_AVAILABLE \
                                "get_service_info $SERVICES_AVAILABLE_DIR/"
+                menu_add_hr
                 menu_add_item d "Disable service                     [ mode ]" disable-service
             fi
         ;;
@@ -641,7 +648,6 @@ menu_gen_prompt() {
                            COPY_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
             menu_add_item m "Make new distro" make-new-distro
-            PROMPT="${PROMPT} ${C_MENU_KEY}R${C_NONE}) Remove distro\n"
             menu_add_item R "Remove distro" remove-distro
         ;;
 
@@ -668,7 +674,7 @@ menu_gen_prompt() {
             if [ -L $DISTRO_ACTIVE_LINK ]; then
                 ACTIVATE_DISTRO=$(get_distros_list $DISTROS_DIR)
 
-                PROMPT="${PROMPT}$MENU_HR_C\n\n"
+                menu_add_hr
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
                 gen_menu_items "Available distros. Choose distro to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
@@ -686,13 +692,13 @@ menu_gen_prompt() {
         ;;
     esac
     if [ -L $DISTRO_ACTIVE_LINK -a "$MENU_MODE" != "choose-distro-available" ]; then
-        PROMPT="${PROMPT}$MENU_HR_C\n\n"
+        menu_add_hr
         menu_add_item c "Choose available distro             [ mode ]" choose-distro-available
     fi
 
 
     ############ distros modes list ##############
-    PROMPT="${PROMPT}$MENU_HR_C\n\n"
+    menu_add_hr
     if [ "$MENU_MODE" != "create-distro" ]; then
         menu_add_item C "Create new distro                   [ mode ]" create-distro
     fi
