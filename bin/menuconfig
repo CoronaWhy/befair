@@ -773,13 +773,12 @@ menu_numeric_index_action() {
             ;;
        esac
 
-       msg info ""
        break
    done
 }
 
 menu_main() {
-    CONTINUE_WRONG="eval { echo Wrong input; continue; }"
+    CONTINUE_WRONG="eval { msg warn \"Wrong input: '\"\$ANS\"'\"; continue; }"
 
     $MENU_STARTUP_CLEAR && clear
 
@@ -849,7 +848,7 @@ menu_main() {
 
             q) exit ;;
             "") ;;
-            *) printf "Wrong input\n\n" >&2 ;;
+            *) msg warn "Wrong input: '"$ANS"'" ;;
           esac
     done
 }
