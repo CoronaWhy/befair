@@ -573,7 +573,7 @@ fi
 
 ############################################################################################
 menu_add_item() {
-    PROMPT="${PROMPT} ${C_MENU_KEY}$1)${C_NONE} $2\n"
+    PROMPT="${PROMPT} ${C_MENU_KEY}$1${C_NONE}) $2\n"
     MENU_ACTIVE_ELEMENT="$MENU_ACTIVE_ELEMENT $3"
 }
 
@@ -707,8 +707,8 @@ menu_gen_prompt() {
         menu_add_item R "Remove distro                       [ mode ]" remove-distro
     fi
 
-    PROMPT="${PROMPT}\n ${C_MENU_KEY}q)${C_NONE} Quit\n"
-    PROMPT="${PROMPT} ${C_MENU_KEY}Enter)${C_NONE} Refresh screen or quit from mode\n"
+    PROMPT="${PROMPT}\n ${C_MENU_KEY}q${C_NONE}) Quit\n"
+    PROMPT="${PROMPT} ${C_MENU_KEY}Enter${C_NONE}) Refresh screen or quit from mode\n"
     PROMPT="${PROMPT}${C_MENU_KEY}Choose>${C_NONE} "
     unset MENU_MODE
 }
