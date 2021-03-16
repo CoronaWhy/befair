@@ -12,10 +12,13 @@ STANDALONE_DIR=exports
 MENU_COL1_WIDHT=35
 
 # clear screen at startup
-MENU_STARTUP_CLEAR=false
+MENU_STARTUP_CLEAR=true
 
 # enable keeping log of events
-MENU_LOG_ENABLED=false
+MENU_LOG_ENABLED=true
+
+# log timestamp format
+MENU_LOG_TIME_FMT=%H:%M:%S
 
 ################################
 
@@ -45,11 +48,11 @@ msg() {
     TYPE=$1
     shift
     case "$TYPE" in
-        err)  printf "$C_MSG_ERR%s$C_NONE\n" "$*" ;;
-        warn) printf "$C_MSG_WARN%s$C_NONE\n" "$*" ;;
-        norm) printf "$C_MSG_NORM%s$C_NONE\n" "$*" ;;
-        info) printf "$C_MSG_INFO%s$C_NONE\n" "$*" ;;
-        tips) printf "$C_LYEL%s$C_NONE\n" "$*" ;;
+        err)  printf "%s $C_MSG_ERR%s$C_NONE\n"   $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        warn) printf "%s $C_MSG_WARN%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        norm) printf "%s $C_MSG_NORM%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        info) printf "%s $C_MSG_INFO%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        tips) printf "%s $C_LYEL%s$C_NONE\n"      $(date +$MENU_LOG_TIME_FMT) "$*" ;;
         hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" ;;
         null) ;;
         *)    printf "%s\n" "$*" ;;
@@ -397,7 +400,7 @@ get_service_info() {
             }
 
             s = out[n]" "service_name"["$2"]"
-            if (length(s) > 60) {
+            if (length(s) > '$(($COLUMNS - $MENU_COL1_WIDHT))') {
                 n++
             }
 
