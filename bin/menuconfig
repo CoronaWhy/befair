@@ -137,9 +137,10 @@ distro_is_valid() {
 
     if [ -L $DIR/Makefile ]; then
         case "$(readlink $DIR/Makefile)" in
+            */mk/distro-include.mk) ;;
             */mk/distro-makefile.mk) ;;
             *)
-                msg $MSG_TYPE "Link $DIR/Makefile point to file $(readlink $DIR/Makefile), but must be to mk/distro-makefile.mk"
+                msg $MSG_TYPE "Link $DIR/Makefile point to file $(readlink $DIR/Makefile), but must be to mk/distro-include.mk or mk/distro-makefile.mk"
                 set_short_msg "wrong Makefile"
                 $CHECK_EXIT
             ;;
@@ -151,8 +152,8 @@ distro_is_valid() {
         set_short_msg "no Makefile"
         $CHECK_EXIT
     else
-        if [ ! -L $DIR/Makefile ] && ! grep -q 'include .*/mk/distro-makefile.mk' $DIR/Makefile; then
-            msg $MSG_TYPE "File $DIR/Makefile not include mk/distro-makefile.mk"
+        if [ ! -L $DIR/Makefile ] && ! grep -q 'include .*/mk/distro-\(include\|makefile\).mk' $DIR/Makefile; then
+            msg $MSG_TYPE "File $DIR/Makefile not include mk/distro-include.mk or mk/distro-makefile.mk"
             set_short_msg "wrong Makefile"
             $CHECK_EXIT
         fi
@@ -509,7 +510,7 @@ create_distro() {
     ask_distro_name DISTRO_NEW new create
     if [ -n "$DISTRO_NEW" ]; then
         mkdir -p $DISTROS_DIR/$DISTRO_NEW
-        ln -rs $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
+        cp $DISTROS_DIR/../mk/distro-makefile.mk $DISTROS_DIR/$DISTRO_NEW/Makefile
         # TODO: create .env file
         msg info "Distro \"$DISTRO_NEW\" created"
         if [ -L $DISTRO_ACTIVE_LINK ]; then

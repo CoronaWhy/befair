@@ -90,8 +90,9 @@ check:
 	@printf 'Checking Makefile is valid - '
 	@if [ -L Makefile ]; then \
 	    case "$$(readlink Makefile)" in \
+	        */mk/distro-include.mk) ;; \
 	        */mk/distro-makefile.mk) ;; \
-	        *) printf $(FAIL)"\nLink Makefile point to file $$(readlink Makefile), but must be to mk/distro-makefile.mk\n"; \
+	        *) printf $(FAIL)"\nLink Makefile point to file $$(readlink Makefile), but must be to mk/distro-include.mk or mk/distro-makefile.mk\n"; \
 				TEST_FAIL=1 ;; \
 	    esac; \
 	fi; \
@@ -99,8 +100,8 @@ check:
 	    printf $(FAIL)"\nThere is no Makefile\n"; \
 		TEST_FAIL=1; \
 	else \
-	    if [ ! -L Makefile ] && ! grep -q 'include .*/mk/distro-makefile.mk' Makefile; then \
-	        printf $(FAIL)"\nFile Makefile not include mk/distro-makefile.mk\n"; \
+	    if [ ! -L Makefile ] && ! grep -q 'include .*/mk/distro-\(include\|makefile\).mk' Makefile; then \
+	        printf $(FAIL)"\nFile Makefile not include mk/distro-include.mk or mk/distro-makefile.mk\n"; \
 			TEST_FAIL=1; \
 	    fi; \
 	fi; \
