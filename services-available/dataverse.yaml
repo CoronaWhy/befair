@@ -22,7 +22,7 @@ services:
         - "LANG=en"
         - "cvManager=http://"
         - "BUNDLEPROPERTIES=Bundle.properties"
-        - "ADMIN_EMAIL=admin@localhost"
+        - "ADMIN_EMAIL=root@localhost"
         - "MAIL_SERVER=mailrelay"
         
         ########################################
@@ -36,10 +36,10 @@ services:
         
         - "SOLR_LOCATION=solr:8983"
         - "TWORAVENS_LOCATION=NOT INSTALLED"
-        - "RSERVE_HOST=localhost"
-        - "RSERVE_PORT=6311"
-        - "RSERVE_USER=rserve"
-        - "RSERVE_PASSWORD=rserve"
+        - "RSERVE_HOST"
+        - "RSERVE_PORT"
+        - "RSERVE_USER"
+        - "RSERVE_PASSWORD"
         - "JVM_OPTS='-Xmx10g -Xms10g -XX:MaxPermSize=20g -XX:PermSize=20g'"
       depends_on:
         - solr

@@ -8,9 +8,8 @@ services:
         - "4848:4848"
         - "8085:8080"
       environment:
-        - "DATAVERSE_URL=https://dataverse.s3.coronawhy.org"
         - "CVM_SERVER_NAME=CESSDA" #Optional
-        - "CVM_SERVER_URL=https://ns.${traefikhost}"
+        - "CVM_SERVER_URL=https://ns.${traefikhost}" # TODO: migrate to .env.example
         - "CVM_TSV_SOURCE=https://raw.githubusercontent.com/Dans-labs/semantic-gateway/main/conf/CMM_Custom_MetadataBlock.tsv"
         #- "WAR_FILE=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/dataverse-5.2-cv.war"
         - "WAR_FILE=https://github.com/IQSS/dataverse/releases/download/v5.3/dataverse-5.3.war"
@@ -23,7 +22,7 @@ services:
         - "LANG=en"
         - "cvManager=http://"
         - "BUNDLEPROPERTIES=Bundle.properties"
-        - "ADMIN_EMAIL=admin@localhost"
+        - "ADMIN_EMAIL=root@localhost"
         - "MAIL_SERVER=mailrelay"
         
         ########################################
@@ -35,17 +34,17 @@ services:
         - "PGPASSWORD"
         ########################################
         
-        - "SOLR_LOCATION=solr:8983"
-        - "TWORAVENS_LOCATION=NOT INSTALLED"
-        - "RSERVE_HOST=localhost"
-        - "RSERVE_PORT=6311"
-        - "RSERVE_USER=rserve"
-        - "RSERVE_PASSWORD=rserve"
-        - "DB_HOST=postgres"
-        - "DB_PORT=5432"
-        - "DB_NAME=dvndb"
-        - "DB_USER=dvnuser"
-        - "DB_PASS=dvnsecret"
+        - "SOLR_LOCATION"
+        - "TWORAVENS_LOCATION"
+        - "RSERVE_HOST"
+        - "RSERVE_PORT"
+        - "RSERVE_USER"
+        - "RSERVE_PASSWORD"
+        - "DB_HOST"
+        - "DB_PORT"
+        - "DB_NAME"
+        - "DB_USER"
+        - "DB_PASS"
         - "JVM_OPTS='-Xmx10g -Xms10g -XX:MaxPermSize=20g -XX:PermSize=20g'"
       depends_on:
         - solr

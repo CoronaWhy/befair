@@ -139,6 +139,11 @@ ps:
 	docker-compose ps
 .PHONY: ps
 
+# help: 'docker-compose logs -f'
+logs:
+	docker-compose logs -f
+.PHONY: logs
+
 # help: run shell inside ${DATAVERSE_CONTAINER_NAME} container
 shell devshell:
 	docker-compose exec $(DATAVERSE_CONTAINER_NAME) bash
