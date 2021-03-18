@@ -11,6 +11,15 @@ STANDALONE_DIR=exports
 
 MENU_COL1_WIDHT=35
 
+# clear screen at startup
+MENU_STARTUP_CLEAR=true
+
+# enable keeping log of events
+MENU_LOG_ENABLED=true
+
+# log timestamp format
+MENU_LOG_TIME_FMT=%H:%M:%S
+
 ################################
 
 # Colors
@@ -39,12 +48,12 @@ msg() {
     TYPE=$1
     shift
     case "$TYPE" in
-        err)  printf "$C_MSG_ERR%s$C_NONE\n" "$*" >&2 ;;
-        warn) printf "$C_MSG_WARN%s$C_NONE\n" "$*" >&2 ;;
-        norm) printf "$C_MSG_NORM%s$C_NONE\n" "$*" >&2 ;;
-        info) printf "$C_MSG_INFO%s$C_NONE\n" "$*" >&2 ;;
-        tips) printf "$C_LYEL%s$C_NONE\n" "$*" >&2 ;;
-        hr)   printf "$C_MSG_HR%s$C_NONE\n" "$*" >&2 ;;
+        err)  printf "%s $C_MSG_ERR%s$C_NONE\n"   $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        warn) printf "%s $C_MSG_WARN%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        norm) printf "%s $C_MSG_NORM%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        info) printf "%s $C_MSG_INFO%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        tips) printf "%s $C_LYEL%s$C_NONE\n"      $(date +$MENU_LOG_TIME_FMT) "$*" ;;
+        hr)   printf "$MENU_HR_C\n" ;;
         null) ;;
         *)    printf "%s\n" "$*" ;;
     esac
@@ -391,7 +400,7 @@ get_service_info() {
             }
 
             s = out[n]" "service_name"["$2"]"
-            if (length(s) > 60) {
+            if (length(s) > '$(($COLUMNS - $MENU_COL1_WIDHT))') {
                 n++
             }
 
@@ -475,7 +484,7 @@ export_standalone_distro() {
 
     cp mk/standalone-makefile.mk $DISTRO_STANDALONE_DIR/Makefile
     if ! useremail=dummy traefikhost=dummy COMPOSE_FILE=$DISTRO_STANDALONE_DIR/docker-compose.yaml docker-compose config -q; then
-        msg hr    "$MENU_HR"
+        msg hr
         msg err  "Export to $DISTRO_STANDALONE_DIR/docker-compose.yaml fail"
         msg norm ""
         msg tips "Checkout this generated docker-compose.yaml for errors:"
@@ -515,10 +524,61 @@ create_distro() {
     fi
 }
 
+if $MENU_LOG_ENABLED && which tput > /dev/null 2>&1; then
+
+    # Set the thematic break (horizontal rule) in width of screen
+    menu_set_hr_param() {
+        COLUMNS=$(tput cols)
+        MENU_HR="$(printf '%*s\n' "$COLUMNS" '' | tr ' ' =)"
+        MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
+    }
+
+    menu_screen_save_param() {
+        #SCREEN_LINE=$(tput lines)
+        #NEED_LINES=$()
+
+        # save current cursor position
+        #tput sc
+        
+        # insert how many lines, how menu need
+        #echo $PROMPT | sed 's/.*//'
+        true
+    }
+
+    menu_screen_restore() {
+        #tput rc # restore cursor
+
+        MENU_LINE_NUM=$(printf "$PROMPT" | wc -l)
+        # move cursor up
+        tput cuu $(( $MENU_LINE_NUM + 1))
+        tput ed # clear from cursor to end of screen
+        echo $MENU_LINE_NUM > /tmp/delme.txt
+        echo "$PROMPT" >> /tmp/delme.txt
+    }
+else
+    menu_set_hr_param() {
+        COLUMNS=${COLUMNS:-80}
+        MENU_HR="$(printf '%*s\n' "$COLUMNS" '' | tr ' ' =)"
+        MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
+    }
+
+    menu_screen_save_param() {
+        true
+    }
+
+    menu_screen_restore() {
+        clear
+    }
+fi
+
 ############################################################################################
 menu_add_item() {
-    PROMPT="${PROMPT} ${C_MENU_KEY}$1)${C_NONE} $2\n"
+    PROMPT="${PROMPT} ${C_MENU_KEY}$1${C_NONE}) $2\n"
     MENU_ACTIVE_ELEMENT="$MENU_ACTIVE_ELEMENT $3"
+}
+
+menu_add_hr() {
+    PROMPT="${PROMPT}$MENU_HR_C\n"
 }
 
 menu_is_active_item() {
@@ -528,45 +588,53 @@ menu_is_active_item() {
     esac
 }
 
-# Set the thematic break (horizontal rule) in width of screen
-menu_set_hr_param() {
-    COLUMNS=$(tput cols)
-    MENU_HR="$(printf '%*s\n' "$COLUMNS" '' | tr ' ' =)"
-    MENU_HR_C="${C_MSG_HR}${MENU_HR}${C_NONE}"
-}
+menu_gen_prompt_active_distributive() {
 
-menu_show_active_distro() {
-
-    msg hr $MENU_HR
+    menu_add_hr
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
-        msg warn "No active distro"
-        msg hr $MENU_HR
+        PROMPT="${PROMPT}${C_MSG_WARN}No active distro${C_NONE}\n"
+        menu_add_hr
         return
     fi
 
     DISTRO_ACTIVE=$(basename $(readlink $DISTRO_ACTIVE_LINK))
-    if ! distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE warn; then
-        msg hr $MENU_HR
+    MENU_BUILD_WARN=$(distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE warn)
+
+    if [ -n "$MENU_BUILD_WARN" ]; then
+        PROMPT="${PROMPT}$MENU_BUILD_WARN\n"
+        menu_add_hr
     fi
 
-    printf "${C_MENU_TITLE}Active distro is \"${C_LGRN}$DISTRO_ACTIVE${C_MENU_TITLE}\".${C_NONE} "
+    PROMPT="${PROMPT}${C_MENU_TITLE}Active distro is \"${C_LGRN}$DISTRO_ACTIVE${C_MENU_TITLE}\".${C_NONE} "
 
-    SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
-    if [ -n "$SERVICES_ACTIVE" ]; then
-        gen_menu_items "Choose active service to ${C_MSG_TIPS}disable${C_NONE}:\n" \
-                       SERVICES_ACTIVE \
-                       "get_active_service_status "
-    fi
-
-    SERVICES_AVAILABLE=$(get_services_available_list $DISTRO_ACTIVE_LINK)
-    if [ -n "$SERVICES_AVAILABLE" ]; then
-        gen_menu_items "Choose available service to ${C_MSG_TIPS}enable${C_NONE}:\n" \
-                       SERVICES_AVAILABLE \
-                       "get_service_info $SERVICES_AVAILABLE_DIR/"
-    fi
+    [ -z "$MENU_MODE" ] && MENU_MODE=disable-service
+    case $MENU_MODE in
+        disable-service)
+            SERVICES_ACTIVE=$(get_services_active_list $DISTRO_ACTIVE_LINK)
+            if [ -n "$SERVICES_ACTIVE" ]; then
+                gen_menu_items "Choose active service to ${C_MSG_TIPS}disable${C_NONE}:\n" \
+                               SERVICES_ACTIVE \
+                               "get_active_service_status "
+                menu_add_hr
+                menu_add_item e "Enable service                      [ mode ]" enable-service
+            fi
+        ;;
+        enable-service)
+            SERVICES_AVAILABLE=$(get_services_available_list $DISTRO_ACTIVE_LINK)
+            if [ -n "$SERVICES_AVAILABLE" ]; then
+                gen_menu_items "Choose available service to ${C_MSG_TIPS}enable${C_NONE}:\n" \
+                               SERVICES_AVAILABLE \
+                               "get_service_info $SERVICES_AVAILABLE_DIR/"
+                menu_add_hr
+                menu_add_item d "Disable service                     [ mode ]" disable-service
+            fi
+        ;;
+    esac
 }
 
-menu_show_prompt() {
+menu_gen_prompt() {
+
+    menu_gen_prompt_active_distributive
 
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
         ACTIVATE_DISTRO=$(get_distros_list $DISTROS_DIR)
@@ -580,7 +648,6 @@ menu_show_prompt() {
                            COPY_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
             menu_add_item m "Make new distro" make-new-distro
-            PROMPT="${PROMPT} ${C_MENU_KEY}R${C_NONE}) Remove distro\n"
             menu_add_item R "Remove distro" remove-distro
         ;;
 
@@ -593,10 +660,10 @@ menu_show_prompt() {
     esac
 
     if [ -L $DISTRO_ACTIVE_LINK ]; then
-        PROMPT="${PROMPT} ${C_MENU_KEY}d${C_NONE}) Disable current distro\n"
+        PROMPT="${PROMPT} ${C_MENU_KEY}D${C_NONE}) Disable current distro\n"
         PROMPT="${PROMPT} ${C_MENU_KEY}r${C_NONE}) Rename current distro\n"
         if distro_is_valid $DISTROS_DIR/$DISTRO_ACTIVE null; then
-            PROMPT="${PROMPT}\n ${C_MENU_KEY}e$C_NONE) Export from current distro to a standalone docker-compose.yaml\n"
+            PROMPT="${PROMPT}\n ${C_MENU_KEY}E$C_NONE) Export from current distro to a standalone docker-compose.yaml\n"
         fi
         PROMPT="${PROMPT}\n"
     fi
@@ -607,7 +674,7 @@ menu_show_prompt() {
             if [ -L $DISTRO_ACTIVE_LINK ]; then
                 ACTIVATE_DISTRO=$(get_distros_list $DISTROS_DIR)
 
-                PROMPT="${PROMPT}$MENU_HR_C\n\n"
+                menu_add_hr
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
                 gen_menu_items "Available distros. Choose distro to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
@@ -625,13 +692,13 @@ menu_show_prompt() {
         ;;
     esac
     if [ -L $DISTRO_ACTIVE_LINK -a "$MENU_MODE" != "choose-distro-available" ]; then
-        PROMPT="${PROMPT}$MENU_HR_C\n\n"
+        menu_add_hr
         menu_add_item c "Choose available distro             [ mode ]" choose-distro-available
     fi
 
 
     ############ distros modes list ##############
-    PROMPT="${PROMPT}$MENU_HR_C\n\n"
+    menu_add_hr
     if [ "$MENU_MODE" != "create-distro" ]; then
         menu_add_item C "Create new distro                   [ mode ]" create-distro
     fi
@@ -640,11 +707,13 @@ menu_show_prompt() {
         menu_add_item R "Remove distro                       [ mode ]" remove-distro
     fi
 
-    PROMPT="${PROMPT}\n ${C_MENU_KEY}q)${C_NONE} Quit\n"
-    PROMPT="${PROMPT} ${C_MENU_KEY}Enter)${C_NONE} Refresh screen or quit from mode\n"
+    PROMPT="${PROMPT}\n ${C_MENU_KEY}q${C_NONE}) Quit\n"
+    PROMPT="${PROMPT} ${C_MENU_KEY}Enter${C_NONE}) Refresh screen or quit from mode\n"
     PROMPT="${PROMPT}${C_MENU_KEY}Choose>${C_NONE} "
     unset MENU_MODE
+}
 
+menu_show() {
     printf "$PROMPT"
 }
 
@@ -704,40 +773,56 @@ menu_numeric_index_action() {
             ;;
        esac
 
-       msg info ""
        break
    done
 }
 
 menu_main() {
-    CONTINUE_WRONG="eval { echo Wrong input; continue; }"
+    CONTINUE_WRONG="eval { msg warn \"Wrong input: '\"\$ANS\"'\"; continue; }"
 
-    clear
+    $MENU_STARTUP_CLEAR && clear
+
     while menu_prepare_vars
-          menu_show_active_distro
-          menu_show_prompt
+          menu_gen_prompt
+          menu_screen_save_param
+          menu_show
           read ANS
     do
-        clear
+        menu_screen_restore
 
         case $ANS in
             [0-9]*) menu_numeric_index_action    ;;
+            z)  echo $MENU_LINE_NUM;;
+            e)
+                menu_is_active_item enable-service || $CONTINUE_WRONG
+                MENU_MODE=enable-service
+            ;;
+
+            d)
+                menu_is_active_item disable-service || $CONTINUE_WRONG
+                MENU_MODE=disable-service
+            ;;
+
             c)
                 menu_is_active_item choose-distro-available || $CONTINUE_WRONG
                 MENU_MODE=choose-distro-available
             ;;
+
             C)
                 menu_is_active_item create-distro || $CONTINUE_WRONG
                 MENU_MODE=create-distro
             ;;
+
             R)
                 menu_is_active_item remove-distro || $CONTINUE_WRONG
                 MENU_MODE=remove-distro
             ;;
+
             m)
                 menu_is_active_item make-new-distro || $CONTINUE_WRONG
                 create_distro
             ;;
+
             r)
                 [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
 
@@ -749,19 +834,21 @@ menu_main() {
                     msg info "Distro \"$(basename $DISTRO_CURRENT)\" renamed to\"$DISTRO_NEW\""
                 fi
             ;;
-            d)
+
+            D)
                 [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
                 rm $DISTRO_ACTIVE_LINK
                 msg info "Active distro \"$DISTRO_ACTIVE\" disabled."
             ;;
-            e)
+
+            E)
                 [ -L $DISTRO_ACTIVE_LINK ] || $CONTINUE_WRONG
                 export_standalone_distro $DISTRO_ACTIVE_LINK
             ;;
 
             q) exit ;;
             "") ;;
-            *) printf "Wrong input\n\n" >&2 ;;
+            *) msg warn "Wrong input: '"$ANS"'" ;;
           esac
     done
 }
