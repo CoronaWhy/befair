@@ -5,9 +5,14 @@ include ../../mk/distro-include.mk
 # Uncomment by removing first # it to try
 ################################################################
 
-## help: my custom rule (this line will be show by 'make help')
-#custom-rule-example:
-#	@echo some custom distro command can be implement hier
-#.PHONY: custom-rule-example
+# help: down => clean => reboot => up
+dev-cycle: down dev-prune up logs
 
+.PHONY: dev-cycle
+
+# help: prune everyting
+dev-prune:
+	@sudo rm -fr var/dataverse var/database var/solr
+	@docker volume prune -f
+.PHONY: dev-cycle
 ################################################################
