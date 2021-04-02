@@ -8,16 +8,9 @@ services:
         #- "443:443"
         - "4848:4848"
         - "8085:8080"
+      env_file:
+        - .env
       environment:
-        #- "DATAVERSE_URL=https://dataverse.s3.coronawhy.org"
-        - "DATAVERSE_DB_HOST"
-        - "DATAVERSE_DB_USER"
-        - "DATAVERSE_DB_PASSWORD"
-        - "DATAVERSE_DB_NAME"
-        - "DATAVERSE_SERVICE_HOST"
-        - "DATAVERSE_URL"
-        - "SOLR_SERVICE_HOST"
-        - "SOLR_SERVICE_PORT"
         - "CVM_SERVER_NAME=CESSDA" #Optional
         - "CVM_SERVER_URL=https://ns.${traefikhost}" # TODO: migrate to .env.example
         - "CVM_TSV_SOURCE=https://raw.githubusercontent.com/Dans-labs/semantic-gateway/main/conf/CMM_Custom_MetadataBlock.tsv"
@@ -37,11 +30,7 @@ services:
         
         ########################################
         # Next section MUST BE overwritten by --env-file when docker-compose is launched
-        - "POSTGRES_SERVER"
         - "POSTGRES_PORT"
-        - "POSTGRES_DATABASE"
-        - "POSTGRES_USER"
-        - "POSTGRES_PASSWORD"
         - "PGPASSWORD"
         ########################################
         
