@@ -1,0 +1,14 @@
+
+    - Finish moving variables from .yaml to .env
+    - Test changing ports
+    - Test chaning passwords
+
+    - Connect google bucket [gcsfuse(?) solution]
+    - Test solr indexing
+
+=========
+
+    - add minIO storage service (https://github.com/CoronaWhy/befair/issues/22)
+    - connect google bucket via minIO
+    - test
+
