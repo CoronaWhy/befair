@@ -4,7 +4,7 @@
     + Test changing ports
 	A.: added $db_port to override the postgres port, works on the level of postgres container but in the dataverse container some initialisation magic prevents $POSTGRES_PORT to propogate into payara configuration and it got reset to default 5432
     - Test changing passwords
-	A.: there some permission errors out of the box with mounted secret volume, need more testing
+	A.: there some permission errors out of the box with mounted secret volume. Looks like currenly the env variable $db_pass is beign used everywhere and changing secred for `secrets/db/password` is not affecting anything. On the other hand remove corresponding password variable is breaking the deployment
 
     - Connect google bucket [gcsfuse(?) solution]
     - Test solr indexing
