@@ -14,5 +14,5 @@ dev-cycle: down dev-prune up logs
 dev-prune:
 	@sudo rm -fr var/dataverse var/database var/solr
 	@docker volume prune -f
-.PHONY: dev-cycle
+.PHONY: dev-prune
 ################################################################

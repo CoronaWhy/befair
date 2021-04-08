@@ -4,30 +4,28 @@ services:
       #image: coronawhy/dataverse:5.4-cv
       image: coronawhy/dataverse:5.3
       # privileged: true
-      ports:
-        #- "443:443"
-        - "4848:4848"
-        - "8085:8080"
-      env_file:
-        - .env
-      environment:
-        - "CVM_SERVER_NAME=CESSDA" #Optional
-        - "CVM_SERVER_URL=https://ns.${traefikhost}" # TODO: migrate to .env.example
-        - "CVM_TSV_SOURCE=https://raw.githubusercontent.com/Dans-labs/semantic-gateway/main/conf/CMM_Custom_MetadataBlock.tsv"
 
-        - "DOCKER_BUILD=true"
-        - "CVM_SQL=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/cv-update.sql"
-        - "CVM_CONFIG=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/cv-keywords.json"
-        - "LANG=en"
-        - "cvManager=http://"
-        - "BUNDLEPROPERTIES=Bundle.properties"
-        - "ADMIN_EMAIL=root@localhost"
-        - "MAIL_SERVER=mailrelay"
-        
+      environment:
+        # ${var} is defined in .env file that is located in current folder
+        - "DATAVERSE_URL=https://${traefikhost}"
+        - "dataverse_fqdn=dataverse.$traefikhost"
+        - "DATAVERSE_DB_HOST=$db_host"
+        - "DATAVERSE_DB_USER=$db_user"
+        - "DATAVERSE_DB_PASSWORD=$db_password"
+        - "DATAVERSE_DB_NAME=$db_name"
+        - "DATAVERSE_SERVICE_HOST=localhost"
+        - "POSTGRES_SERVER=$db_host"
+        #- "POSTGRES_PORT=${db_port}"
+        - "POSTGRES_DATABASE=$db_name"
+        - "POSTGRES_USER=$db_user"
+        - "POSTGRES_PASSWORD=$db_password"
+        - "SOLR_SERVICE_HOST=solr"
+        - "SOLR_SERVICE_PORT=8983"
+        - "baseuri=${traefikhost}"
         - "JVM_OPTS='-Xmx10g -Xms10g -XX:MaxPermSize=20g -XX:PermSize=20g'"
       depends_on:
         - solr
-#        - ns
+        - postgres
       volumes:
         - ./var/dataverse/data:/usr/local/payara5/glassfish/domains/domain1/autodeploy
         - ./var/dataverse/dumps:/dumps

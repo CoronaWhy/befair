@@ -1,11 +1,15 @@
 
-    - Finish moving variables from .yaml to .env
-    - Test changing ports
-    - Test chaning passwords
+    + Finish moving variables from .yaml to .env
+	A.: after experiments found that docker-compose is not consistent with overrideds of env variables. Thus, decided to keep env section in yaml files; only shared bash variables are kept in .env
+    + Test changing ports
+	A.: added $db_port to override the postgres port, works on the level of postgres container but in the dataverse container some initialisation magic prevents $POSTGRES_PORT to propogate into payara configuration and it got reset to default 5432
+    - Test changing passwords
+	A.: there some permission errors out of the box with mounted secret volume, need more testing
 
     - Connect google bucket [gcsfuse(?) solution]
     - Test solr indexing
 
+    - fix dataverse initialization magic for $POSTGRES_PORT
 =========
 
     - add minIO storage service (https://github.com/CoronaWhy/befair/issues/22)

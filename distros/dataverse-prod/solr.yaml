@@ -2,12 +2,8 @@ version: '3.7'
 services:
     solr:
       image: ekoindarto/solr-cvm:latest
-      privileged: true
-      ports:
-        - "8983:8983"
+      #privileged: true
       environment:
-        - "SOLR_HOST"
-        - "SOLR_PORT"
         - "SOLR_JAVA_MEM=-Xms1g -Xmx1g"
       volumes:
         - ./var/solr/data:/opt/solr/server/solr/collection1/data
