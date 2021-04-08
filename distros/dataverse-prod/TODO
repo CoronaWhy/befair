@@ -9,6 +9,7 @@
     - Connect google bucket [gcsfuse(?) solution]
     - Test solr indexing
 
+    - fix ${dataverse.fqdn} variable propagation to payara config. It's not even initialized with default "localhost" for some reason
     - fix dataverse initialization magic for $POSTGRES_PORT
 =========
 
