@@ -36,7 +36,12 @@ check-all:
                 "It should be a link to an active distro" >&2; \
 			exit 1;                                                \
 		fi;                                                        \
-        $(MAKE) menuconfig;                                        \
+        echo "There is no symbolic link '$(DISTRO_ACTIVE_LINK)'";  \
+		echo "You can create it manually to some distro, for ex.:";\
+		echo "$$ ln -s distros/hello-world $(DISTRO_ACTIVE_LINK)"; \
+		echo "or run '$(MAKE) menuconfig' and choose active distro";\
+		echo ;                                                     \
+		exit 1;                                                    \
 	elif [ ! -e $(DISTRO_ACTIVE_LINK) ]; then                      \
 			echo "$(DISTRO_ACTIVE_LINK) is brocken symbolic link." \
                 "It should be a link to an active distro" >&2; \
