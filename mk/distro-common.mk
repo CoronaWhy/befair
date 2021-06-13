@@ -145,6 +145,11 @@ shell devshell:
 	docker-compose exec $(DATAVERSE_CONTAINER_NAME) bash
 .PHONY: shell devshell
 
+# help: 'docker-compose logs -f'
+logs:
+	docker-compose logs -f
+.PHONY: logs
+
 # help: 'docker volume prune' - cleanup data for current distro
 volume-prune:
 	docker volume prune --filter 'name=$(COMPOSE_PROJECT_NAME)'
