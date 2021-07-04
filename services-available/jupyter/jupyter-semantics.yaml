@@ -1,0 +1,16 @@
+version: '3.7'
+services:
+    jupyter:
+      image: coronawhy/jupyter-semantics:latest
+      volumes:
+        - ./var/jupyter/repo:/home/jovyan/work
+      environment:
+        - "JUPYTERHUB_1API_TOKEN=test_for_local"
+      user:
+        "root"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.jupyter.rule=Host(`jupyter.${traefikhost}`)"
+        - "traefik.http.services.jupyter.loadbalancer.server.port=8888"
+        - "traefik.http.routers.jupyter.tls=true"
+        - "traefik.http.routers.jupyter.tls.certresolver=myresolver"

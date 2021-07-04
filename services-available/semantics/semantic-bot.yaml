@@ -1,0 +1,25 @@
+version: '3.7'
+services:
+    ontology:
+#      container_name: semantic-bot
+      image: coronawhy/semantic-bot:latest
+      privileged: true
+      environment:
+        - "WORKDIR=/semantic-bot"
+        - "LANGU=en"
+        - "PYTHONIOENCODING=utf-8" 
+        - "LANG=en_US.UTF-8"
+      ports:
+        - "8099:8080"
+      volumes:
+        - ./var/semantic-bot/data_dumps:/semantic-bot/data_dumps
+        - ./var/semantic-bot/chat:/semantic-bot/chat
+        - ./var/semantic-bot/chatbot_app/settings.py:/semantic-bot/chatbot_app/settings.py
+        - ./var/semantic-bot/start-server.sh:/semantic-bot/start-server.sh
+        - ./var/semantic-bot/assets:/semantic-bot/static_files
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.semanticbot.rule=Host(`semanticbot.${traefikhost}`)"
+        - "traefik.http.services.semanticbot.loadbalancer.server.port=8080"
+        - "traefik.http.routers.semanticbot.tls=true"
+        - "traefik.http.routers.semanticbot.tls.certresolver=myresolver"
