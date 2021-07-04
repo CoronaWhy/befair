@@ -1,0 +1,5 @@
+# IDEA: remap uid https://docs.docker.com/engine/security/userns-remap/
+mkdir -p var/solr
+sudo chown 8983:8983 var/solr
+sudo chmod g+w var/solr
+
