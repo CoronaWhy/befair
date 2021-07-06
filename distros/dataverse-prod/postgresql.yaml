@@ -4,12 +4,13 @@ services:
       # ports:
         # - "5433:5432"
       image: library/postgres:10.13
+      user: root
       restart: unless-stopped
       environment:
         - LC_ALL=C.UTF-8
-        - POSTGRES_USER=${db_user}
-        - POSTGRES_PASSWORD=${db_password}
-        - POSTGRES_DB=${db_name}
+        - POSTGRES_USER=$db_user
+        - POSTGRES_PASSWORD=$db_password
+        - POSTGRES_DB=$db_name
 #        - PGPORT=${db_port}
       volumes:
         - ./var/database/data:/var/lib/postgresql/data/ # persist data even if container shuts down

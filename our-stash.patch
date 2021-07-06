@@ -1,0 +1,144 @@
+diff --git a/bin/menuconfig b/bin/menuconfig
+index 639e198..4f3c670 100755
+--- a/bin/menuconfig
++++ b/bin/menuconfig
+@@ -552,8 +552,6 @@ if $MENU_LOG_ENABLED && which tput > /dev/null 2>&1; then
+         # move cursor up
+         tput cuu $(( $MENU_LINE_NUM + 1))
+         tput ed # clear from cursor to end of screen
+-        echo $MENU_LINE_NUM > /tmp/delme.txt
+-        echo "$PROMPT" >> /tmp/delme.txt
+     }
+ else
+     menu_set_hr_param() {
+diff --git a/mk/distro-common.mk b/mk/distro-common.mk
+index be39262..ac25027 100644
+--- a/mk/distro-common.mk
++++ b/mk/distro-common.mk
+@@ -21,8 +21,6 @@ endif
+ # find all *.yaml file in distro directory and set COMPOSE_FILE for docker-compose
+ export COMPOSE_FILE=$(call join-with,:,$(wildcard *.yaml))
+ 
+-# FIXME: find a proper way to find dataverse container name
+-export DATAVERSE_CONTAINER_NAME=$(COMPOSE_PROJECT_NAME)_dataverse_1
+ 
+ ## NOTE: trick to run docker-compose with any command (with completed COMPOSE_FILE variable). Can take only one parameter
+ #%: DOCKER_COMPOSE_COMMAND := $(MAKECMDGOALS)
+@@ -118,6 +116,8 @@ up: check
+ 	docker-compose up -d
+ .PHONY: up
+ 
++
++# help: 'docker-compose up' with logs
+ debug:
+ 	docker-compose up
+ .PHONY: debug
+@@ -146,7 +146,7 @@ logs:
+ 
+ # help: run shell inside ${DATAVERSE_CONTAINER_NAME} container
+ shell devshell:
+-	docker-compose exec $(DATAVERSE_CONTAINER_NAME) bash
++	docker-compose exec dataverse bash
+ .PHONY: shell devshell
+ 
+ # help: 'docker volume prune' - cleanup data for current distro
+diff --git a/services-available/databases/postgresql.yaml b/services-available/databases/postgresql.yaml
+index b18be90..6911311 100644
+--- a/services-available/databases/postgresql.yaml
++++ b/services-available/databases/postgresql.yaml
+@@ -2,15 +2,10 @@ version: '3.7'
+ services:
+     postgres:
+       ports:
+-        - "5433:5432"
++        - "5432:5432"
+       image: library/postgres:10.13
+       restart: unless-stopped
+-
+-      environment:
+-        - "LC_ALL"
+-        - "POSTGRES_DB"
+-        - "POSTGRES_USER"
+-        - "POSTGRES_PASSWORD"
+-        - "POSTGRES_PORT"
++      env_file:
++        - .env
+       volumes:
+         - ./var/database/data:/var/lib/postgresql/data/ # persist data even if container shuts down
+diff --git a/services-available/dataverse/dataverse-5.3.yaml b/services-available/dataverse/dataverse-5.3.yaml
+index eb129f0..b819e5b 100644
+--- a/services-available/dataverse/dataverse-5.3.yaml
++++ b/services-available/dataverse/dataverse-5.3.yaml
+@@ -1,51 +1,14 @@
+ version: '3.7'
+ services:
+     dataverse:
+-      image: coronawhy/dataverse:5.4-cv
++      image: coronawhy/dataverse:5.3
+       # privileged: true
+       ports:
+         #- "443:443"
+         - "4848:4848"
+-        - "8085:8080"
+-      environment:
+-        - "CVM_SERVER_NAME=CESSDA" #Optional
+-        - "CVM_SERVER_URL=https://ns.${traefikhost}" # TODO: migrate to .env.example
+-        - "CVM_TSV_SOURCE=https://raw.githubusercontent.com/Dans-labs/semantic-gateway/main/conf/CMM_Custom_MetadataBlock.tsv"
+-        #- "WAR_FILE=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/dataverse-5.2-cv.war"
+-        - "WAR_FILE=https://github.com/IQSS/dataverse/releases/download/v5.3/dataverse-5.3.war"
+-
+-        - "4848:4848"
+-        - "8085:8080"
+-        - "DOCKER_BUILD=true"
+-        - "CVM_SQL=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/cv-update.sql"
+-        - "CVM_CONFIG=https://github.com/IQSS/dataverse-docker/releases/download/5.2-cv/cv-keywords.json"
+-        - "LANG=en"
+-        - "cvManager=http://"
+-        - "BUNDLEPROPERTIES=Bundle.properties"
+-        - "ADMIN_EMAIL=root@localhost"
+-        - "MAIL_SERVER=mailrelay"
+-        
+-        ########################################
+-        # Next section MUST BE overwritten by --env-file when docker-compose is launched
+-        - "POSTGRES_SERVER"
+-        - "POSTGRES_PORT"
+-        - "POSTGRES_DATABASE"
+-        - "POSTGRES_USER"
+-        - "PGPASSWORD"
+-        ########################################
+-        
+-        - "SOLR_LOCATION"
+-        - "TWORAVENS_LOCATION"
+-        - "RSERVE_HOST"
+-        - "RSERVE_PORT"
+-        - "RSERVE_USER"
+-        - "RSERVE_PASSWORD"
+-        - "DB_HOST"
+-        - "DB_PORT"
+-        - "DB_NAME"
+-        - "DB_USER"
+-        - "DB_PASS"
+-        - "JVM_OPTS='-Xmx10g -Xms10g -XX:MaxPermSize=20g -XX:PermSize=20g'"
++        - "8080:8080"
++      env_file:
++        -  .env
+       depends_on:
+         - solr
+ #        - ns
+diff --git a/services-available/search/solr.yaml b/services-available/search/solr.yaml
+index 9a908ee..310ce18 100644
+--- a/services-available/search/solr.yaml
++++ b/services-available/search/solr.yaml
+@@ -5,10 +5,8 @@ services:
+       privileged: true
+       ports:
+         - "8983:8983"
+-      environment:
+-        - "SOLR_HOST"
+-        - "SOLR_PORT"
+-        - "SOLR_JAVA_MEM=-Xms1g -Xmx1g"
++      env_file:
++        - .env
+       volumes:
+         - ./var/solr/data:/opt/solr/server/solr/collection1/data
+       labels:

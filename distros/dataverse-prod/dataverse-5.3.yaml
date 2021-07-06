@@ -1,8 +1,9 @@
 version: '3.7'
 services:
     dataverse:
-      #image: coronawhy/dataverse:5.4-cv
-      image: coronawhy/dataverse:5.3
+            #image: coronawhy/dataverse:5.4-cv
+      image: dataverse:5.3
+      user: root
       # privileged: true
 
       environment:
@@ -12,29 +13,31 @@ services:
         - "DATAVERSE_DB_HOST=$db_host"
         - "DATAVERSE_DB_USER=$db_user"
         - "DATAVERSE_DB_PASSWORD=$db_password"
-        - "DATAVERSE_DB_NAME=$db_name"
-        - "DATAVERSE_SERVICE_HOST=localhost"
+        - "DATAVERSE_DB_NAME"
+        - "DATAVERSE_SERVICE_HOST"
+          #        - "DATAVERSE_URL"
+        - "SOLR_SERVICE_HOST"
+        - "SOLR_SERVICE_PORT"
         - "POSTGRES_SERVER=$db_host"
-        #- "POSTGRES_PORT=${db_port}"
+        - "POSTGRES_PORT=$db_port"
         - "POSTGRES_DATABASE=$db_name"
         - "POSTGRES_USER=$db_user"
         - "POSTGRES_PASSWORD=$db_password"
-        - "SOLR_SERVICE_HOST=solr"
-        - "SOLR_SERVICE_PORT=8983"
         - "baseuri=${traefikhost}"
         - "JVM_OPTS='-Xmx10g -Xms10g -XX:MaxPermSize=20g -XX:PermSize=20g'"
       depends_on:
         - solr
         - postgres
       volumes:
-        - ./var/dataverse/data:/usr/local/payara5/glassfish/domains/domain1/autodeploy
+              #- ./var/dataverse/data:/usr/local/payara5/glassfish/domains/domain1/autodeploy
+        - /media/dataverse-data:/data
         - ./var/dataverse/dumps:/dumps
-        - ./var/dataverse/docroot:/docroot
+        - /media/dataverse-docroot:/docroot
         - ./var/dataverse/metadata:/metadata
         - ./secrets:/secrets
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.dataverse.rule=Host(`www.${traefikhost}`)"
+        - "traefik.http.routers.dataverse.rule=Host(`${traefikhost}`)"
         - "traefik.http.services.dataverse.loadbalancer.server.port=8080"
         - "traefik.http.routers.dataverse.tls=true"
         - "traefik.http.routers.dataverse.tls.certresolver=myresolver"  
