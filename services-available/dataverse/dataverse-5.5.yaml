@@ -2,7 +2,7 @@ version: '3.7'
 services:
     dataverse:
       #image: coronawhy/dataverse:5.4-cv
-      image: coronawhy/dataverse:5.3
+      image: coronawhy/dataverse:5.5
       # privileged: true
       ports:
         #- "443:443"
@@ -62,13 +62,14 @@ services:
 #        - ns
       volumes:
         - ./var/dataverse/data:/usr/local/payara5/glassfish/domains/domain1/autodeploy
+        - /media/dataverse-data:/data
         - ./var/dataverse/dumps:/dumps
-        - ./var/dataverse/docroot:/docroot
+        - /media/dataverse-docroot:/docroot
         - ./var/dataverse/metadata:/metadata
         - ./secrets:/secrets
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.dataverse.rule=Host(`www.${traefikhost}`)"
+        - "traefik.http.routers.dataverse.rule=Host(`${traefikhost}`)"
         - "traefik.http.services.dataverse.loadbalancer.server.port=8080"
         - "traefik.http.routers.dataverse.tls=true"
         - "traefik.http.routers.dataverse.tls.certresolver=myresolver"  
