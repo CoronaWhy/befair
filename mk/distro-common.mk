@@ -24,9 +24,6 @@ COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),$(n
 # find all *.yaml file in distro directory and set COMPOSE_FILE for docker-compose
 export COMPOSE_FILE=$(call join-with,:,$(wildcard *.yaml))
 
-# FIXME: find a proper way to find dataverse container name
-export DATAVERSE_CONTAINER_NAME=$(COMPOSE_PROJECT_NAME)_dataverse_1
-
 ## NOTE: trick to run docker-compose with any command (with completed COMPOSE_FILE variable). Can take only one parameter
 #%: DOCKER_COMPOSE_COMMAND := $(MAKECMDGOALS)
 #%: MAKECMDGOALS := $(firstword MAKECMDGOALS)
@@ -148,11 +145,6 @@ down:
 ps:
 	docker-compose ps
 .PHONY: ps
-
-# help: run shell inside ${DATAVERSE_CONTAINER_NAME} container
-shell devshell:
-	docker-compose exec $(DATAVERSE_CONTAINER_NAME) bash
-.PHONY: shell devshell
 
 # help: 'docker-compose logs -f'
 logs:
