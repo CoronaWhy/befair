@@ -181,14 +181,16 @@ env: .env
 .PHONY: env
 
 # help: bash with enviroment variables for current distro to allow operate docker-compose directly
-bash: .env
+shell-distro: PROMPT:=\[\e[01;32m\]\u@\h\[\e[01;35m($(COMPOSE_PROJECT_NAME))\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\]\$$ 
+shell-distro: .env
 	@. ./.env; \
 		printf "\nbash with enviroment variables for current distro. Try to run 'docker-compose config' for example\n\n"; \
-		bash -li || true
-.PHONY: bash
+		PS1="$(PROMPT)" exec bash --noprofile --norc -il
+.PHONY: shell-distro
 
 .env:
 	@echo "You need to create .env file"
+	@exit 1
 #endif # ($(DISTRO_DIR),./)
 
 # vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix
