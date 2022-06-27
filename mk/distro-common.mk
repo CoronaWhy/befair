@@ -1,4 +1,5 @@
-DISTRO_DIR=$(dir $(filter %distro-common.mk,$(MAKEFILE_LIST)))
+BASE_DIR=$(abspath $(dir $(filter %mk/distro-common.mk,$(MAKEFILE_LIST)))/..)
+DISTRO_DIR=$(abspath $(shell pwd))
 
 # Run all unknown target in distro-active/ directory
 ifeq ($(DISTRO_DIR),./)
@@ -17,6 +18,8 @@ endif
 
 # add default enviroment file if available
 -include .env
+# if there is no COMPOSE_PROJECT_NAME in .env, let it be distro directory name
+COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),$(notdir $(DISTRO_DIR)))
 
 # find all *.yaml file in distro directory and set COMPOSE_FILE for docker-compose
 export COMPOSE_FILE=$(call join-with,:,$(wildcard *.yaml))
@@ -39,6 +42,14 @@ help:
 var-show-all:
 	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
 	echo $(DISTRO_DIR)
+
+print-base-dir:
+	@echo $(BASE_DIR)
+.PHONY: print-base-dir
+
+print-project-name:
+	@echo $(COMPOSE_PROJECT_NAME)
+.PHONY: print-project-name
 
 # Find all *.mk files which corrspond to *.yaml files.
 # For example if solr.yaml exist in distro directory, search for
@@ -106,8 +117,6 @@ check:
 	    fi; \
 	fi; \
 	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
-
-
 .PHONY: check
 
 docker-compose compose:
