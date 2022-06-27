@@ -39,9 +39,9 @@ help:
 	@$(call generate-help,$(MAKEFILE_LIST))
 .PHONY: help
 
-var-show-all:
+print-all-variables:
 	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
-	echo $(DISTRO_DIR)
+.PHONY: print-all-variables
 
 print-base-dir:
 	@echo $(BASE_DIR)
