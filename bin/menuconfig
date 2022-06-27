@@ -119,6 +119,12 @@ distro_is_valid() {
         $CHECK_EXIT
     fi
 
+	if grep -q container_name: $DIR/*.yaml 2> /dev/null >&2; then
+	    msg $MSG_TYPE 'Please delete `container_name` tag from .yaml'
+        set_short_msg "tag container_name in .yaml(!)"
+        $CHECK_EXIT
+    fi
+
     for YAML in $DIR/*.yaml; do
         if [ -L $YAML ]; then
             FILE=$(readlink $YAML)

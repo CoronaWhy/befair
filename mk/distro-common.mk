@@ -82,6 +82,10 @@ check:
 	@printf 'Checking not existing *.yml files - '
 	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from distro'; $(CHECK_EXIT) } || echo $(OK)
 
+	@printf 'Checking in *.yaml for `container_name` tag - '
+	@grep -q container_name: *.yaml && \
+		{ echo $(FAIL)'. Please delete `container_name` tag from .yaml'; grep container_name: *.yaml; $(CHECK_EXIT) } || echo $(OK)
+
 	@printf 'Checking links point to files with same name - '
 	@for YAML in *.yaml; do \
 		if [ -L $$YAML ]; then \
