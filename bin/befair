@@ -81,6 +81,7 @@ die() {
     exit 1
 }
 
+############## utils ##################
 check_active() {
     if [ ! -L $DISTRO_ACTIVE_LINK ]; then
         if [ -e $DISTRO_ACTIVE_LINK ]; then
@@ -97,7 +98,9 @@ distro_is_valid() {
     DIR="$1"
     MSG_TYPE="${2:-err}"
 
-    if [ "$MSG_TYPE" != "warn" -a "$MSG_TYPE" != "short" ]; then
+    if [ "$MSG_TYPE" != "warn" -a  \
+         "$MSG_TYPE" != "short" -a \
+         "$MSG_TYPE" != "verbose" ]; then
         CHECK_EXIT="eval return 1;"
     else
         CHECK_EXIT="eval CHECK_EXIT_STATUS=1"
@@ -114,39 +117,87 @@ distro_is_valid() {
         }
     fi
 
+    if [ "$MSG_TYPE" = "verbose" ]; then
+        msg_verbose() {
+            msg $@
+        }
+    else
+        msg_verbose() {
+            true
+        }
+    fi
+
+    msg_verbose -n norm 'Checking existing .yaml files - '
     if ! ls $DIR/*.yaml 2> /dev/null 1>&2; then
+        msg_verbose warn 'fail'
         msg $MSG_TYPE "There is no $DIR/*.yaml"
         set_short_msg "no *.yaml"
         $CHECK_EXIT
-    elif ! ls $DIR/*.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null; then
-        msg $MSG_TYPE "There is only $DIR/*.override.yaml. Need at least one not override.yaml"
-        set_short_msg "override.yaml only"
-        $CHECK_EXIT
+    else
+        msg_verbose info 'ok'
+        msg_verbose -n norm 'Checking existing not only .override.yaml file - '
+        if ! ls $DIR/*.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null; then
+            msg_verbose warn 'fail'
+            msg $MSG_TYPE "There is only $DIR/*.override.yaml. Need at least one not override.yaml"
+            set_short_msg "override.yaml only"
+            $CHECK_EXIT
+        else
+            msg_verbose info 'ok'
+
+            msg_verbose -n norm "Checking 'docker-compose config -q' syntax - "
+            COMPOSE_FILE="$(ls $DIR/*.yaml | sed -n 'H;${g;s/\n//;s/\n/:/g;p}')"
+            if ! useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q 2> /dev/null; then
+                msg_verbose warn 'fail'
+                if [ "$MSG_TYPE" != "null" ]; then
+                    useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q
+                fi
+                set_short_msg "error in *.yaml"
+                $CHECK_EXIT
+            else
+                msg_verbose info 'ok'
+                # to show warnings
+                useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q
+            fi
+        fi
     fi
 
+    msg_verbose -n norm 'Checking existing .env file - '
     if [ ! -e $DIR/.env ]; then
+        msg_verbose warn 'fail'
         msg $MSG_TYPE "There is no $DIR/.env"
         set_short_msg "no .env"
         $CHECK_EXIT
+    else
+        msg_verbose info 'ok'
     fi
 
+    msg_verbose -n norm 'Checking not existing *.yml files - '
     if ls $DIR/*.yml 2> /dev/null >&2; then
+        msg_verbose warn 'fail'
         msg $MSG_TYPE "There is $DIR/*.yml files. Please rename or move out them from distro"
         set_short_msg "exist *.yml(!)"
         $CHECK_EXIT
+    else
+        msg_verbose info 'ok'
     fi
 
+    msg_verbose -n norm 'Checking in *.yaml for `container_name` tag - '
 	if grep -q container_name: $DIR/*.yaml 2> /dev/null >&2; then
+        msg_verbose warn 'fail'
 	    msg $MSG_TYPE 'Please delete `container_name` tag from .yaml'
         set_short_msg "tag container_name in .yaml(!)"
         $CHECK_EXIT
+    else
+        msg_verbose info 'ok'
     fi
 
+    msg_verbose -n norm 'Checking links point to files with same name - '
     for YAML in $DIR/*.yaml; do
         if [ -L $YAML ]; then
             FILE=$(readlink $YAML)
             if [ "$(basename $FILE)" != "$(basename $YAML)" ]; then
                 TEST_FAIL=true
+                msg_verbose warn 'fail'
                 msg $MSG_TYPE "Link $YAML point to file $FILE with different name"
             fi
         fi
@@ -156,13 +207,18 @@ distro_is_valid() {
         unset TEST_FAIL
         unset FILE
         $CHECK_EXIT
+    else
+        msg_verbose info 'ok'
     fi
 
+    msg_verbose -n norm 'Checking Makefile is valid - '
     if [ -L $DIR/Makefile ]; then
         case "$(readlink $DIR/Makefile)" in
             */mk/distro-include.mk) ;;
             */mk/distro-makefile.mk) ;;
             *)
+                TEST_FAIL=true
+                msg_verbose warn 'fail'
                 msg $MSG_TYPE "Link $DIR/Makefile point to file $(readlink $DIR/Makefile), but must be to mk/distro-include.mk or mk/distro-makefile.mk"
                 set_short_msg "wrong Makefile"
                 $CHECK_EXIT
@@ -170,15 +226,29 @@ distro_is_valid() {
         esac
     fi
 
+    if [ -n "$TEST_FAIL" ]; then
+        unset TEST_FAIL
+        $CHECK_EXIT
+    else
+        msg_verbose info 'ok'
+    fi
+
+    msg_verbose -n norm 'Checking exising Makefile - '
     if [ ! -e $DIR/Makefile ]; then
+        msg_verbose warn 'fail'
         msg $MSG_TYPE "There is no $DIR/Makefile"
         set_short_msg "no Makefile"
         $CHECK_EXIT
     else
+        msg_verbose info 'ok'
+        msg_verbose -n norm 'Checking Makefile include mk/distro-include.mk or mk/distro-makefile.mk - '
         if [ ! -L $DIR/Makefile ] && ! grep -q 'include .*/mk/distro-\(include\|makefile\).mk' $DIR/Makefile; then
+            msg_verbose warn 'fail'
             msg $MSG_TYPE "File $DIR/Makefile not include mk/distro-include.mk or mk/distro-makefile.mk"
             set_short_msg "wrong Makefile"
             $CHECK_EXIT
+        else
+            msg_verbose info 'ok'
         fi
     fi
 
@@ -799,7 +869,9 @@ menu_numeric_index_action() {
    done
 }
 
-do_tui() {
+############## actions ##################
+do_menuconfig() {
+    MSG_SHOW_TIMESTAMP=true
     CONTINUE_WRONG="eval { msg warn \"Wrong input: '\"\$ANS\"'\"; continue; }"
 
     check_active
@@ -877,12 +949,13 @@ do_tui() {
     done
 }
 
-############## actions ##################
-do_menuconfig() {
-    do_tui
+do_check() {
+    set_distro_dir $@
+    distro_is_valid $DISTRO_DIR verbose
+    exit $?
 }
 
-do_export() {
+set_distro_dir() {
     DISTRO_DIR="$1"
     if [ -z "$DISTRO_DIR" ]; then
         check_active
@@ -890,18 +963,24 @@ do_export() {
     else
         [ -d "$DISTRO_DIR" ] || die "$DISTRO_DIR is not directory"
     fi
+}
+
+do_export() {
+    set_distro_dir $@
     export_standalone_distro "$DISTRO_DIR"
 }
 
-usage() {
+do_help() {
     cat << __USAGE_END
 Usage: $PROG [flags] actions
     -h       - this help
     -s dir   - standalone export directory (default $STANDALONE_DIR)
 
 actions:
-    menuconfig  - run TUI interface
-    export      - export to standalone distro, active distro or from current directory
+    help         - show this help
+    menuconfig   - run TUI interface
+    export [dir] - export to standalone distro, active distro or [dir] parameter
+    check  [dir] - check is distro valid, active distro or [dir] parameter
 __USAGE_END
     exit $1
 }
@@ -911,14 +990,14 @@ OPT_FORCE=false
 
 while getopts hfs: FLAG; do
     case $FLAG in
-        h) usage;;
+        h) do_help;;
         f) OPT_FORCE=true;;
         s) STANDALONE_DIR="$OPTARG";;
     esac
 done
 shift $((OPTIND - 1))
 
-[ -z "$1" ] && usage
+[ -z "$1" ] && do_help
 
 ACTION="$1"
 shift

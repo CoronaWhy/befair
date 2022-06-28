@@ -69,55 +69,7 @@ FAIL := $(shell printf "\"\e[1;31mfail\e[0m\"")
 
 # help: checking consistency of distro
 check:
-	@printf "Checking 'docker-compose config -q' syntax - "
-	@useremail=dummy traefikhost=dummy docker-compose config -q && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
-
-	@printf 'Checking existing .env file - '
-	@[ -e .env ] && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
-
-	@printf 'Checking existing not only .override.yaml file - '
-	@ls *.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null && echo $(OK) \
-		|| { echo $(FAIL)'. Need at least one not override.yaml'; $(CHECK_EXIT) }
-
-	@printf 'Checking not existing *.yml files - '
-	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from distro'; $(CHECK_EXIT) } || echo $(OK)
-
-	@printf 'Checking in *.yaml for `container_name` tag - '
-	@grep -q container_name: *.yaml && \
-		{ echo $(FAIL)'. Please delete `container_name` tag from .yaml'; grep container_name: *.yaml; $(CHECK_EXIT) } || echo $(OK)
-
-	@printf 'Checking links point to files with same name - '
-	@for YAML in *.yaml; do \
-		if [ -L $$YAML ]; then \
-            FILE=$$(readlink $$YAML); \
-            if [ "$$(basename $$FILE)" != "$$(basename $$YAML)" ]; then \
-				[ -z "$$TEST_FAIL" ] && echo $(FAIL); \
-				echo "Link $$YAML point to file $$FILE with different name"; \
-				TEST_FAIL=1; \
-			fi; \
-        fi; \
-    done; \
-	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
-
-	@printf 'Checking Makefile is valid - '
-	@if [ -L Makefile ]; then \
-	    case "$$(readlink Makefile)" in \
-	        */mk/distro-include.mk) ;; \
-	        */mk/distro-makefile.mk) ;; \
-	        *) printf $(FAIL)"\nLink Makefile point to file $$(readlink Makefile), but must be to mk/distro-include.mk or mk/distro-makefile.mk\n"; \
-				TEST_FAIL=1 ;; \
-	    esac; \
-	fi; \
-	if [ ! -e Makefile ]; then \
-	    printf $(FAIL)"\nThere is no Makefile\n"; \
-		TEST_FAIL=1; \
-	else \
-	    if [ ! -L Makefile ] && ! grep -q 'include .*/mk/distro-\(include\|makefile\).mk' Makefile; then \
-	        printf $(FAIL)"\nFile Makefile not include mk/distro-include.mk or mk/distro-makefile.mk\n"; \
-			TEST_FAIL=1; \
-	    fi; \
-	fi; \
-	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
+	@$(BASE_DIR)/bin/befair check $$(pwd) || true
 .PHONY: check
 
 docker-compose compose:
