@@ -5,7 +5,7 @@ include ../../mk/distro-include.mk
 # Uncomment by removing first # it to try
 ################################################################
 
-## help: my custom rule (this line will be show by 'make help')
+## help: my custom rule (this line will be show by 'make help'
 #custom-rule-example:
 #	@echo some custom distro command can be implement hier
 #.PHONY: custom-rule-example

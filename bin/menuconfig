@@ -435,7 +435,7 @@ get_service_info() {
 }
 
 make_docker_compose_yaml() {
-    DIR_IN="$(readlink $1)"
+    DIR_IN="$(realpath $1)"
     FILE_OUT="$2/docker-compose.yaml"
 
     SEP='###########################'
@@ -468,9 +468,9 @@ make_docker_compose_yaml() {
 }
 
 export_standalone_distro() {
-    DISTRO_DIR=$(readlink $1)
+    DISTRO_DIR=$(realpath $1)
     DISTRO_NAME=$(basename $DISTRO_DIR)
-    DISTRO_STANDALONE_DIR="$STANDALONE_DIR/$DISTRO_NAME"
+    DISTRO_STANDALONE_DIR="${DISTRO_STANDALONE_DIR:-$STANDALONE_DIR/$DISTRO_NAME}"
 
     if ! distro_is_valid $DISTRO_DIR err; then
         msg err "Exporting "$DISTRO_NAME" fail"
@@ -478,8 +478,8 @@ export_standalone_distro() {
     fi
 
     if [ -d $DISTRO_STANDALONE_DIR ]; then
-        if ask_yes "Directory $DISTRO_STANDALONE_DIR exist, do you want remove it before export?"; then
-            rm -r $DISTRO_STANDALONE_DIR
+        if $OPT_FORCE || ask_yes "Directory $DISTRO_STANDALONE_DIR exist, do you want remove it before export?"; then
+            rm -rf $DISTRO_STANDALONE_DIR
         else
             [ $? = 2 ] && return # cancel
         fi
@@ -559,8 +559,6 @@ if $MENU_LOG_ENABLED && which tput > /dev/null 2>&1; then
         # move cursor up
         tput cuu $(( $MENU_LINE_NUM + 1))
         tput ed # clear from cursor to end of screen
-        echo $MENU_LINE_NUM > /tmp/delme.txt
-        echo "$PROMPT" >> /tmp/delme.txt
     }
 else
     menu_set_hr_param() {
@@ -860,6 +858,19 @@ menu_main() {
     done
 }
 
+############## actions ##################
+
+do_export() {
+    DISTRO_DIR="$1"
+    if [ -z "$DISTRO_DIR" ]; then
+        check_active
+        DISTRO_DIR="$DISTRO_ACTIVE_LINK"
+    else
+        [ -d "$DISTRO_DIR" ] || die "$DISTRO_DIR is not directory"
+    fi
+    export_standalone_distro "$DISTRO_DIR"
+}
+
 usage() {
     cat << __USAGE_END
 Usage: $PROG [-s standalone-export-dir] [-h]
@@ -870,14 +881,28 @@ __USAGE_END
 }
 
 ############## main() ##################
-while getopts hs: FLAG; do
+OPT_FORCE=false
+
+while getopts hfs: FLAG; do
     case $FLAG in
         h) usage;;
+        f) OPT_FORCE=true;;
         s) STANDALONE_DIR="$OPTARG";;
     esac
 done
 shift $((OPTIND - 1))
 
-check_active
+if [ -z "$1" ]; then
+    check_active
+    menu_main
+    exit
+fi
 
-menu_main
+ACTION="$1"
+shift
+
+if ! type do_$ACTION > /dev/null 2>&1; then
+    die "There is no action \"$ACTION\""
+fi
+
+do_$ACTION $@

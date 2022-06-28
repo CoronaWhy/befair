@@ -183,10 +183,28 @@ shell-distro: .env
 		printf "\nbash with enviroment variables for current distro. Try to run 'docker-compose config' for example\n\n"; \
 		PS1="$(PROMPT)" exec bash --noprofile --norc -il
 .PHONY: shell-distro
+# PROMPT_COMMAND
+#		export BASH_ENV=$(BASE_DIR)/.bashrc; exec bash -i
+#		exec bash --rcfile $(BASE_DIR)/.bashrc -i
 
 .env:
 	@echo "You need to create .env file"
 	@exit 1
 #endif # ($(DISTRO_DIR),./)
+
+# help: run configurator
+menuconfig:
+	@$(BASE_DIR)/bin/menuconfig
+.PHONY: menuconfig
+
+# help: run configurator inside ubuntu container [portable]
+menuconfig-docker:
+	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
+.PHONY: menuconfig-docker
+
+# help: export distro as standalone distro
+export:
+	@$(BASE_DIR)/bin/menuconfig -f export $$(pwd)
+.PHONY: export
 
 # vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix

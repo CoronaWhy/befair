@@ -8,16 +8,6 @@ help:
 	@$(call generate-help,$(MAKEFILE_LIST) mk/distro-common.mk)
 .PHONY: help
 
-# help: run configurator
-menuconfig:
-	@bin/menuconfig
-.PHONY: menuconfig
-
-# help: run configurator inside ubuntu container [portable]
-menuconfig-docker:
-	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
-.PHONY: menuconfig-docker
-
 # help: check all distros consistency
 check-all:
 	@for DIR in $(DISTROS_DIR)/*; do               \
