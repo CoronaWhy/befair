@@ -194,17 +194,17 @@ shell-distro: .env
 
 # help: run configurator
 menuconfig:
-	@$(BASE_DIR)/bin/menuconfig
+	@$(BASE_DIR)/bin/befair menuconfig
 .PHONY: menuconfig
 
 # help: run configurator inside ubuntu container [portable]
 menuconfig-docker:
-	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
+	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/befair menuconfig
 .PHONY: menuconfig-docker
 
 # help: export distro as standalone distro
 export:
-	@$(BASE_DIR)/bin/menuconfig -f export $$(pwd)
+	@$(BASE_DIR)/bin/befair -f export $$(pwd)
 .PHONY: export
 
 # vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix

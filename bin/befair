@@ -782,8 +782,10 @@ menu_numeric_index_action() {
    done
 }
 
-menu_main() {
+do_tui() {
     CONTINUE_WRONG="eval { msg warn \"Wrong input: '\"\$ANS\"'\"; continue; }"
+
+    check_active
 
     $MENU_STARTUP_CLEAR && clear
 
@@ -859,6 +861,9 @@ menu_main() {
 }
 
 ############## actions ##################
+do_menuconfig() {
+    do_tui
+}
 
 do_export() {
     DISTRO_DIR="$1"
@@ -873,9 +878,13 @@ do_export() {
 
 usage() {
     cat << __USAGE_END
-Usage: $PROG [-s standalone-export-dir] [-h]
-    -h  - this help
-    -s  - standalone export directory (default $STANDALONE_DIR)
+Usage: $PROG [flags] actions
+    -h       - this help
+    -s dir   - standalone export directory (default $STANDALONE_DIR)
+
+actions:
+    menuconfig  - run TUI interface
+    export      - export to standalone distro, active distro or from current directory
 __USAGE_END
     exit $1
 }
@@ -892,11 +901,7 @@ while getopts hfs: FLAG; do
 done
 shift $((OPTIND - 1))
 
-if [ -z "$1" ]; then
-    check_active
-    menu_main
-    exit
-fi
+[ -z "$1" ] && usage
 
 ACTION="$1"
 shift
