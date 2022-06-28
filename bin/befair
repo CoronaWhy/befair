@@ -20,7 +20,9 @@ MENU_LOG_ENABLED=true
 # log timestamp format
 MENU_LOG_TIME_FMT=%H:%M:%S
 
-################################
+############## msg ##################
+MSG_SHOW_TIMESTAMP=false
+MSG_LEVELS="err warn norm info tips hr null"
 
 # Colors
 C_NONE="\033[0m"     C_WHITE="\033[1;37m"
@@ -45,17 +47,32 @@ C_MSG_TIPS="$C_LYEL"
 C_MSG_HR="$C_CYAN"
 
 msg() {
+    MSG_CR="\n"
+    if [ "$1" = "-n" ]; then
+        MSG_CR=" "
+        shift
+    fi
+
     TYPE=$1
     shift
+
+    if ! echo "$MSG_LEVELS" | grep -qw "$TYPE"; then
+        return
+    fi
+
+    if $MSG_SHOW_TIMESTAMP; then
+        MSG_TIMESTAMP="$(date +$MENU_LOG_TIME_FMT) "
+    fi
+
     case "$TYPE" in
-        err)  printf "%s $C_MSG_ERR%s$C_NONE\n"   $(date +$MENU_LOG_TIME_FMT) "$*" ;;
-        warn) printf "%s $C_MSG_WARN%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
-        norm) printf "%s $C_MSG_NORM%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
-        info) printf "%s $C_MSG_INFO%s$C_NONE\n"  $(date +$MENU_LOG_TIME_FMT) "$*" ;;
-        tips) printf "%s $C_LYEL%s$C_NONE\n"      $(date +$MENU_LOG_TIME_FMT) "$*" ;;
-        hr)   printf "$MENU_HR_C\n" ;;
+        err)  printf "$MSG_TIMESTAMP$C_MSG_ERR%s$C_NONE$MSG_CR"  "$*" ;;
+        warn) printf "$MSG_TIMESTAMP$C_MSG_WARN%s$C_NONE$MSG_CR" "$*" ;;
+        norm) printf "$MSG_TIMESTAMP$C_MSG_NORM%s$C_NONE$MSG_CR" "$*" ;;
+        info) printf "$MSG_TIMESTAMP$C_MSG_INFO%s$C_NONE$MSG_CR" "$*" ;;
+        tips) printf "$MSG_TIMESTAMP$C_LYEL%s$C_NONE$MSG_CR"     "$*" ;;
+        hr)   printf "$MENU_HR_C$MSG_CR" ;;
         null) ;;
-        *)    printf "%s\n" "$*" ;;
+        *)    printf "%s$MSG_CR" "$*" ;;
     esac
 }
 
