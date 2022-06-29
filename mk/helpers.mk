@@ -1,3 +1,6 @@
+DISTROS_DIR=distros
+DISTRO_ACTIVE_LINK=distro-active
+
 # A literal space.
 space :=
 space +=

@@ -1,12 +1,29 @@
 include mk/helpers.mk
 
-DISTROS_DIR=distros
-DISTRO_ACTIVE_LINK=distro-active
+#################################################################
+# NOTE: this targets valid when no active distro is choosing
+#################################################################
+
+MAKEFLAGS += --no-print-directory
 
 # help: show all targets with tag 'help'
 help:
-	@$(call generate-help,$(MAKEFILE_LIST) mk/distro-common.mk)
+	@if [ ! -L $(DISTRO_ACTIVE_LINK) ]; then       \
+		$(call generate-help,$(MAKEFILE_LIST));    \
+	else                                           \
+		$(MAKE) -C $(DISTRO_ACTIVE_LINK) $@;       \
+	fi
 .PHONY: help
+
+# help: run configurator
+menuconfig:
+	@$(MAKE) -f $(PWD)/mk/distro-include.mk $@
+.PHONY: menuconfig
+
+# help: run configurator inside ubuntu container [portable]
+menuconfig-docker:
+	@$(MAKE) -f $(PWD)/mk/distro-include.mk $@
+.PHONY: menuconfig-docker
 
 # help: check all distros consistency
 check-all:
@@ -18,6 +35,7 @@ check-all:
 		echo;                                     \
 	done
 .PHONY: check-all
+#################################################################
 
 %:
 	@if [ ! -L $(DISTRO_ACTIVE_LINK) ]; then                       \
