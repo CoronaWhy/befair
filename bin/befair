@@ -144,19 +144,26 @@ distro_is_valid() {
         else
             msg_verbose info 'ok'
 
-            msg_verbose -n norm "Checking 'docker-compose config -q' syntax - "
-            COMPOSE_FILE="$(ls $DIR/*.yaml | sed -n 'H;${g;s/\n//;s/\n/:/g;p}')"
-            if ! useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q 2> /dev/null; then
-                msg_verbose warn 'fail'
-                if [ "$MSG_TYPE" != "null" ]; then
-                    useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q
+            # NOTE: this is a slow check, and showing list of available distros going slow.
+            # So... make sense run in only for target 'check'. If it decided otherwise do not forget
+            # uncomment: msg info "Checking distros validity..."
+
+            if [ "$MSG_TYPE" = "verbose" ]; then
+                msg_verbose -n norm "Checking 'docker-compose config -q' syntax - "
+                _DISTRO_NAME=$(basename $DIR)
+                COMPOSE_FILE="$(ls $DIR/*.yaml | sed -n 'H;${g;s/\n//;s/\n/:/g;p}')"
+                if ! useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q 2> /dev/null; then
+                    msg_verbose warn 'fail'
+                    if [ "$MSG_TYPE" != "null" ]; then
+                        useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q 2>&1 | sed "s/^/$_DISTRO_NAME: /" >&2
+                    fi
+                    set_short_msg "error in *.yaml"
+                    $CHECK_EXIT
+                else
+                    msg_verbose info 'ok'
+                    # to show warnings
+                    useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q 2>&1 | sed "s/^/$_DISTRO_NAME: /" >&2
                 fi
-                set_short_msg "error in *.yaml"
-                $CHECK_EXIT
-            else
-                msg_verbose info 'ok'
-                # to show warnings
-                useremail=dummy traefikhost=dummy COMPOSE_FILE="$COMPOSE_FILE" docker-compose config -q
             fi
         fi
     fi
@@ -736,6 +743,7 @@ menu_gen_prompt() {
     case $MENU_MODE in
         create-distro)
             COPY_DISTRO="$(get_distros_list $DISTROS_DIR)"
+            #msg info "Checking distros validity..."
             gen_menu_items "Available distros. Choose distro to make ${C_MSG_TIPS}copy${C_NONE}:\n" \
                            COPY_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
@@ -745,6 +753,7 @@ menu_gen_prompt() {
 
         remove-distro)
             REMOVE_DISTRO="$(get_distros_list $DISTROS_DIR)"
+            #msg info "Checking distros validity..."
             gen_menu_items "Available distros. Choose distro to ${C_MSG_WARN}remove${C_NONE}:\n" \
                            REMOVE_DISTRO \
                            "get_distro_status $DISTROS_DIR/"
@@ -768,6 +777,7 @@ menu_gen_prompt() {
 
                 menu_add_hr
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
+                #msg info "Checking distros validity..."
                 gen_menu_items "Available distros. Choose distro to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
                                "get_distro_status $DISTROS_DIR/"
@@ -777,6 +787,7 @@ menu_gen_prompt() {
         *)
             if [ -z "$MENU_MODE" -a ! -L $DISTRO_ACTIVE_LINK ]; then
                 # to $DISTROS_DIR/ will be added ITEM in gen_menu_items
+                #msg info "Checking distros validity..."
                 gen_menu_items "Available distros. Choose distro to make it ${C_MSG_TIPS}active${C_NONE}:\n" \
                                ACTIVATE_DISTRO \
                                "get_distro_status $DISTROS_DIR/"
