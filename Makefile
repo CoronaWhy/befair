@@ -1,21 +1,28 @@
 include mk/helpers.mk
 
-DISTROS_DIR=distros
-DISTRO_ACTIVE_LINK=distro-active
+#################################################################
+# NOTE: this targets valid when no active distro is choosing
+#################################################################
+
+MAKEFLAGS += --no-print-directory
 
 # help: show all targets with tag 'help'
 help:
-	@$(call generate-help,$(MAKEFILE_LIST) mk/distro-common.mk)
+	@if [ ! -L $(DISTRO_ACTIVE_LINK) ]; then       \
+		$(call generate-help,$(MAKEFILE_LIST));    \
+	else                                           \
+		$(MAKE) -C $(DISTRO_ACTIVE_LINK) $@;       \
+	fi
 .PHONY: help
 
 # help: run configurator
 menuconfig:
-	@bin/menuconfig
+	@$(MAKE) -f $(PWD)/mk/distro-include.mk $@
 .PHONY: menuconfig
 
 # help: run configurator inside ubuntu container [portable]
 menuconfig-docker:
-	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/menuconfig 
+	@$(MAKE) -f $(PWD)/mk/distro-include.mk $@
 .PHONY: menuconfig-docker
 
 # help: check all distros consistency
@@ -28,6 +35,7 @@ check-all:
 		echo;                                     \
 	done
 .PHONY: check-all
+#################################################################
 
 %:
 	@if [ ! -L $(DISTRO_ACTIVE_LINK) ]; then                       \
@@ -36,7 +44,12 @@ check-all:
                 "It should be a link to an active distro" >&2; \
 			exit 1;                                                \
 		fi;                                                        \
-        $(MAKE) menuconfig;                                        \
+        echo "There is no symbolic link '$(DISTRO_ACTIVE_LINK)'";  \
+		echo "You can create it manually to some distro, for ex.:";\
+		echo "$$ ln -s distros/hello-world $(DISTRO_ACTIVE_LINK)"; \
+		echo "or run '$(MAKE) menuconfig' and choose active distro";\
+		echo ;                                                     \
+		exit 1;                                                    \
 	elif [ ! -e $(DISTRO_ACTIVE_LINK) ]; then                      \
 			echo "$(DISTRO_ACTIVE_LINK) is brocken symbolic link." \
                 "It should be a link to an active distro" >&2; \

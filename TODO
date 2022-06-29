@@ -2,19 +2,20 @@
  + make check
     + check yaml syntax
     + .env is present
- - [menuconfig] user can use command 'e) export' even if menu for it not showed becouse
+ - [befair] user can use command 'e) export' even if menu for it not showed becouse
                 of error in active distro. need to fix
- - [menuconfig] implement export docker-compose.override.yaml from *.override.yaml files
- - [menuconfig] handle .env files in
+ - [befair] implement export docker-compose.override.yaml from *.override.yaml files
+ - [befair] handle .env files in
 
- - [menuconfig] add command from command line. like: menuconfig export
+ + [befair] add command from command line. like: menuconfig export
     - test export all distros
         - use dejagnu
- - [menuconfig] view/edit services
+ - [befair] view/edit services
+ - [befair] warning "project cannot be exported becouse of warnings'
 
+ - [befair] Makefile in standalone distro add services-available/*.mk
  - make export, make export-tgz
- - make menuconfig from distro directory and exports/(?)
-
+ + `make export` from distro directory and exports
 
  + services-avalable/*.mk
  - allow run several distros in same host

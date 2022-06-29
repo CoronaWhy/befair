@@ -1,14 +1,19 @@
-# help: 'docker exec -it ${DATAVERSE_CONTAINER_NAME} asadmin'
+# help: run shell inside dataverse container
+shell-dataverse:
+	docker-compose exec dataverse bash
+.PHONY: shell-dataverse
+
+# help: 'docker-compose exec dataverse asadmin'
 asadmin:
-	docker exec -it $(DATAVERSE_CONTAINER_NAME) asadmin 
+	docker-compose exec dataverse asadmin 
 .PHONY: asadmin
 
-# help: 'docker exec ${DATAVERSE_CONTAINER_NAME} tail -F /opt/payara/appserver/glassfish/domains/production/logs/server.log'
+# help: 'docker-compose exec dataverse tail -F /opt/payara/appserver/glassfish/domains/production/logs/server.log'
 payara-logs:
-	docker exec $(DATAVERSE_CONTAINER_NAME) tail -n 1000  -F /opt/payara/appserver/glassfish/domains/production/logs/server.log
+	docker-compose exec dataverse tail -n 1000  -F /opt/payara/appserver/glassfish/domains/production/logs/server.log
 .PHONY: payara-logs
 
-# help: 'docker exec ${DATAVERSE_CONTAINER_NAME} vim domain.xml'
+# help: 'docker-compose exec dataverse vim domain.xml'
 edit-domain.xml:
-	docker exec $(DATAVERSE_CONTAINER_NAME) vim ./appserver/glassfish/domains/production/config/domain.xml 
+	docker-compose exec dataverse vim ./appserver/glassfish/domains/production/config/domain.xml 
 .PHONY: edit-domain.xml

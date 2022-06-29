@@ -95,7 +95,7 @@ make down
 
 # Menuconfig
 
-BeFAIR has a tool to manage all services, it's located in bin/menuconfig. You can enable/disable both services and distros there in a convinient way.
+BeFAIR has a tool to manage all services, it's located in bin/befair. You can enable/disable both services and distros there in a convinient way.
 
 # Citation for the academic use
 

@@ -1,4 +1,5 @@
-DISTRO_DIR=$(dir $(filter %distro-common.mk,$(MAKEFILE_LIST)))
+BASE_DIR=$(abspath $(dir $(filter %mk/distro-common.mk,$(MAKEFILE_LIST)))/..)
+DISTRO_DIR=$(abspath $(shell pwd))
 
 # Run all unknown target in distro-active/ directory
 ifeq ($(DISTRO_DIR),./)
@@ -17,12 +18,11 @@ endif
 
 # add default enviroment file if available
 -include .env
+# if there is no COMPOSE_PROJECT_NAME in .env, let it be distro directory name
+COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),$(notdir $(DISTRO_DIR)))
 
 # find all *.yaml file in distro directory and set COMPOSE_FILE for docker-compose
 export COMPOSE_FILE=$(call join-with,:,$(wildcard *.yaml))
-
-# FIXME: find a proper way to find dataverse container name
-export DATAVERSE_CONTAINER_NAME=$(COMPOSE_PROJECT_NAME)_dataverse_1
 
 ## NOTE: trick to run docker-compose with any command (with completed COMPOSE_FILE variable). Can take only one parameter
 #%: DOCKER_COMPOSE_COMMAND := $(MAKECMDGOALS)
@@ -36,9 +36,17 @@ help:
 	@$(call generate-help,$(MAKEFILE_LIST))
 .PHONY: help
 
-var-show-all:
+print-all-variables:
 	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
-	echo $(DISTRO_DIR)
+.PHONY: print-all-variables
+
+print-base-dir:
+	@echo $(BASE_DIR)
+.PHONY: print-base-dir
+
+print-project-name:
+	@echo $(COMPOSE_PROJECT_NAME)
+.PHONY: print-project-name
 
 # Find all *.mk files which corrspond to *.yaml files.
 # For example if solr.yaml exist in distro directory, search for
@@ -61,53 +69,7 @@ FAIL := $(shell printf "\"\e[1;31mfail\e[0m\"")
 
 # help: checking consistency of distro
 check:
-	@printf "Checking 'docker-compose config -q' syntax - "
-	@useremail=dummy traefikhost=dummy docker-compose config -q && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
-
-	@printf 'Checking existing .env file - '
-	@[ -e .env ] && echo $(OK) || { echo $(FAIL); $(CHECK_EXIT) }
-
-	@printf 'Checking existing not only .override.yaml file - '
-	@ls *.yaml 2> /dev/null | grep -qv '\.override.yaml' > /dev/null && echo $(OK) \
-		|| { echo $(FAIL)'. Need at least one not override.yaml'; $(CHECK_EXIT) }
-
-	@printf 'Checking not existing *.yml files - '
-	@ls *.yml 2> /dev/null >&2 && { echo $(FAIL)'. Please rename or move out *.yml from distro'; $(CHECK_EXIT) } || echo $(OK)
-
-	@printf 'Checking links point to files with same name - '
-	@for YAML in *.yaml; do \
-		if [ -L $$YAML ]; then \
-            FILE=$$(readlink $$YAML); \
-            if [ "$$(basename $$FILE)" != "$$(basename $$YAML)" ]; then \
-				[ -z "$$TEST_FAIL" ] && echo $(FAIL); \
-				echo "Link $$YAML point to file $$FILE with different name"; \
-				TEST_FAIL=1; \
-			fi; \
-        fi; \
-    done; \
-	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
-
-	@printf 'Checking Makefile is valid - '
-	@if [ -L Makefile ]; then \
-	    case "$$(readlink Makefile)" in \
-	        */mk/distro-include.mk) ;; \
-	        */mk/distro-makefile.mk) ;; \
-	        *) printf $(FAIL)"\nLink Makefile point to file $$(readlink Makefile), but must be to mk/distro-include.mk or mk/distro-makefile.mk\n"; \
-				TEST_FAIL=1 ;; \
-	    esac; \
-	fi; \
-	if [ ! -e Makefile ]; then \
-	    printf $(FAIL)"\nThere is no Makefile\n"; \
-		TEST_FAIL=1; \
-	else \
-	    if [ ! -L Makefile ] && ! grep -q 'include .*/mk/distro-\(include\|makefile\).mk' Makefile; then \
-	        printf $(FAIL)"\nFile Makefile not include mk/distro-include.mk or mk/distro-makefile.mk\n"; \
-			TEST_FAIL=1; \
-	    fi; \
-	fi; \
-	[ -z "$$TEST_FAIL" ] && echo $(OK) || { true; $(CHECK_EXIT) }
-
-
+	@$(BASE_DIR)/bin/befair check $$(pwd) || true
 .PHONY: check
 
 docker-compose compose:
@@ -140,10 +102,10 @@ ps:
 	docker-compose ps
 .PHONY: ps
 
-# help: run shell inside ${DATAVERSE_CONTAINER_NAME} container
-shell devshell:
-	docker-compose exec $(DATAVERSE_CONTAINER_NAME) bash
-.PHONY: shell devshell
+# help: 'docker-compose logs -f'
+logs:
+	docker-compose logs -f
+.PHONY: logs
 
 # help: 'docker volume prune' - cleanup data for current distro
 volume-prune:
@@ -167,14 +129,34 @@ env: .env
 .PHONY: env
 
 # help: bash with enviroment variables for current distro to allow operate docker-compose directly
-bash: .env
+shell-distro: PROMPT:=\[\e[01;32m\]\u@\h\[\e[01;35m($(COMPOSE_PROJECT_NAME))\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\]\$$ 
+shell-distro: .env
 	@. ./.env; \
 		printf "\nbash with enviroment variables for current distro. Try to run 'docker-compose config' for example\n\n"; \
-		bash -li || true
-.PHONY: bash
+		PS1="$(PROMPT)" exec bash --noprofile --norc -il
+.PHONY: shell-distro
+# PROMPT_COMMAND
+#		export BASH_ENV=$(BASE_DIR)/.bashrc; exec bash -i
+#		exec bash --rcfile $(BASE_DIR)/.bashrc -i
 
 .env:
 	@echo "You need to create .env file"
+	@exit 1
 #endif # ($(DISTRO_DIR),./)
+
+# help: run configurator
+menuconfig:
+	@$(BASE_DIR)/bin/befair menuconfig
+.PHONY: menuconfig
+
+# help: run configurator inside ubuntu container [portable]
+menuconfig-docker:
+	docker run -it --rm -v $(shell pwd):/work -w /work ubuntu /work/bin/befair menuconfig
+.PHONY: menuconfig-docker
+
+# help: export distro as standalone distro
+export:
+	@$(BASE_DIR)/bin/befair -f export $$(pwd)
+.PHONY: export
 
 # vim: noexpandtab tabstop=4 shiftwidth=4 fileformat=unix
